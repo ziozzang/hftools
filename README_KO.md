@@ -31,7 +31,11 @@ go install github.com/ziozzang/hfdownload/cmd/hfdown@latest
 
 make build
 ./hfdown version
+./hfdown --help
 ```
+
+명령별 옵션은 `hfdown help COMMAND` 또는 `hfdown COMMAND --help`로 확인합니다.
+`hfdown --version`, `hfdown -v`, `hfdown -V`도 버전 별칭으로 지원합니다.
 
 6개 플랫폼 바이너리를 모두 만들려면 다음을 실행합니다.
 

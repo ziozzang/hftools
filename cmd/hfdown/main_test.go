@@ -162,6 +162,21 @@ func TestParseBytes(t *testing.T) {
 	}
 }
 
+func TestHelpAndVersionAliases(t *testing.T) {
+	ctx := context.Background()
+	for _, args := range [][]string{{"help"}, {"help", "download"}, {"help", "ds"}, {"version"}, {"--version"}, {"-v"}, {"-V"}} {
+		if err := run(ctx, args); err != nil {
+			t.Errorf("run(%q): %v", args, err)
+		}
+	}
+	if err := run(ctx, []string{"help", "unknown"}); err == nil {
+		t.Fatal("unknown help topic accepted")
+	}
+	if err := run(ctx, []string{"version", "extra"}); err == nil {
+		t.Fatal("extra version argument accepted")
+	}
+}
+
 func TestParsePlainModelList(t *testing.T) {
 	q, err := parseQueueData([]byte("\ufeff; comment\n\n  FluidInference/silero-vad-coreml  \n ; another comment\nhttps://huggingface.co/openai-community/gpt2\n"))
 	if err != nil {

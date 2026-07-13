@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"path"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -25,7 +26,7 @@ import (
 	"github.com/ziozzang/hfdownload/internal/state"
 )
 
-const version = "0.2.2"
+const version = "0.2.3"
 
 type settings struct {
 	Endpoint           string   `json:"endpoint"`
@@ -97,16 +98,62 @@ func run(ctx context.Context, args []string) error {
 		return verifyBatchCommand(args[1:])
 	case "status":
 		return statusCommand(args[1:])
-	case "version", "--version", "-version":
-		fmt.Println("hfdown", version)
+	case "version", "--version", "-version", "-v", "-V":
+		if len(args) != 1 {
+			return fmt.Errorf("usage: hfdown version")
+		}
+		printVersion(os.Stdout)
 		return nil
-	case "help", "-h", "--help":
+	case "help":
+		return helpCommand(ctx, args[1:])
+	case "-h", "--help":
 		usage(os.Stdout)
 		return nil
 	default:
 		usage(os.Stderr)
 		return fmt.Errorf("unknown command %q", args[0])
 	}
+}
+
+func printVersion(w io.Writer) {
+	fmt.Fprintf(w, "hfdown %s (%s/%s)\n", version, runtime.GOOS, runtime.GOARCH)
+}
+
+func helpCommand(ctx context.Context, args []string) error {
+	if len(args) == 0 {
+		usage(os.Stdout)
+		return nil
+	}
+	if len(args) != 1 {
+		return fmt.Errorf("usage: hfdown help [COMMAND]")
+	}
+	var err error
+	switch args[0] {
+	case "download", "dn", "d":
+		err = repositoryCommand(ctx, []string{"-h"}, hub.RepoTypeModel, "download")
+	case "dataset", "ds":
+		err = repositoryCommand(ctx, []string{"-h"}, hub.RepoTypeDataset, "dataset")
+	case "batch":
+		err = batchCommand(ctx, []string{"-h"})
+	case "verify":
+		err = verifyCommand([]string{"-h"})
+	case "verify-batch":
+		err = verifyBatchCommand([]string{"-h"})
+	case "status":
+		err = statusCommand([]string{"-h"})
+	case "version":
+		printVersion(os.Stdout)
+		return nil
+	case "help":
+		usage(os.Stdout)
+		return nil
+	default:
+		return fmt.Errorf("unknown help topic %q", args[0])
+	}
+	if errors.Is(err, flag.ErrHelp) {
+		return nil
+	}
+	return err
 }
 
 func downloadCommand(ctx context.Context, args []string) error {
@@ -1067,13 +1114,28 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, `hfdown - resumable, hash-verified Hugging Face repository downloader
 
 Usage:
-  hfdown download|dn|d [options] REPO
-  hfdown dataset|ds [options] REPO
-  hfdown batch --list models.txt [options]
-  hfdown batch --queue queue.json [options]
-  hfdown verify [--output DIR] [--force]
-  hfdown verify-batch [--root DIR] [--force]
-  hfdown status [--output DIR]
+  hfdown COMMAND [options]
 
-Run "hfdown <command> -h" for command options.`)
+Commands:
+  download, dn, d    Download or update a model repository
+  dataset, ds        Download or update a dataset repository
+  batch              Process a plain-text list or JSON queue
+  verify             Verify one downloaded repository
+  verify-batch       Recursively verify downloaded repositories
+  status             Show stored repository status and revision
+  version            Print version and target platform
+  help               Show general or command-specific help
+
+Common forms:
+  hfdown d [options] OWNER/MODEL
+  hfdown ds [options] OWNER/DATASET
+  hfdown batch --list repositories.txt [options]
+  hfdown batch --queue queue.json [options]
+  hfdown verify --output DIR [--force]
+  hfdown verify-batch --root DIR [--force]
+
+Help and version:
+  hfdown help [COMMAND]
+  hfdown COMMAND --help
+  hfdown version | --version | -v`)
 }

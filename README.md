@@ -31,7 +31,11 @@ go install github.com/ziozzang/hfdownload/cmd/hfdown@latest
 
 make build
 ./hfdown version
+./hfdown --help
 ```
+
+Use `hfdown help COMMAND` or `hfdown COMMAND --help` for command-specific
+options. `hfdown --version`, `hfdown -v`, and `hfdown -V` are version aliases.
 
 Build all six release targets:
 
