@@ -1,0 +1,9 @@
+/hfdown
+/dist/
+/.metadata/
+/tmp/
+/hfdown-metadata/
+/.hfdown/
+/.config/
+/go/
+/.gitconfig

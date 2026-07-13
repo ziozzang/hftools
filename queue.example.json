@@ -1,0 +1,19 @@
+{
+  "output_root": "./models",
+  "jobs": [
+    {
+      "repo": "hf-internal-testing/tiny-random-bert",
+      "revision": "main"
+    },
+    {
+      "repo": "openai-community/gpt2",
+      "output": "./models/gpt2",
+      "revision": "main",
+      "parts": 8,
+      "multipart_threshold": 67108864,
+      "buffer_size": 1048576,
+      "retries": 5,
+      "resume": true
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+; Add one Hugging Face model per line.
+; Blank lines and lines beginning with a semicolon are ignored.
+
+FluidInference/silero-vad-coreml
+hf-internal-testing/tiny-random-bert
+
+; Full Hugging Face URLs are also accepted.
+https://huggingface.co/openai-community/gpt2
