@@ -2,6 +2,8 @@
 
 한국어 | [English](README.md)
 
+Created by Jioh L. Jung <ziozzang@gmail.com>
+
 `hfdown`은 Hugging Face의 모델과 데이터셋 리포지터리를 낮은 리소스로
 다운로드하는 프로그램입니다. 중단된 다운로드 이어받기와 HTTP Range 분할
 다운로드를 지원하며, 리비전을 Git 커밋으로 확정한 뒤 Git blob 또는 Git LFS

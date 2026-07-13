@@ -2,6 +2,8 @@
 
 English | [한국어](README_KO.md)
 
+Created by Jioh L. Jung <ziozzang@gmail.com>
+
 `hfdown` is a low-resource, resumable downloader for Hugging Face model and
 dataset repositories. It resolves a revision to a Git commit, downloads files
 with HTTP Range requests, and verifies them against Git blob or Git LFS hashes.
