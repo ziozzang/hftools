@@ -14,7 +14,7 @@ var completionCommands = []string{
 	"info", "ls", "diff", "du", "get", "peek", "scan", "sign", "verify-sig",
 	"gc", "cache-gc", "dedup", "repair", "doctor", "watch",
 	"cache-export", "cache-import", "cache-import-batch", "cache-list", "cache-verify",
-	"serve", "completion", "version", "help",
+	"serve", "completion", "update", "version", "help",
 }
 
 func completionCommand(args []string) error {

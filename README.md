@@ -37,6 +37,7 @@ around the same integrity-first, offline-friendly core.
 - Convert to and from the Hugging Face cache layout for offline / air-gapped use
 - Serve local downloads over the Hugging Face URL scheme to an offline fleet
 - Shell completion for bash, zsh, and fish (`completion`)
+- Self-update to the latest release with SHA-256 verification (`update`)
 - Static binaries for macOS, Windows, and Linux on ARM64 and x86-64
 
 ## Install and build
@@ -65,6 +66,22 @@ make release
 Outputs are written to `dist/`. Release builds use `CGO_ENABLED=0`, `netgo`,
 and `osusergo`; the build script also checks that Linux outputs are statically
 linked.
+
+## Update the binary
+
+```bash
+hftools update --check          # report whether a newer release exists
+hftools update                  # download, verify, and replace this binary
+hftools update --version v0.8.1 # install a specific release tag
+```
+
+`update` fetches the matching build for your platform from the GitHub release,
+verifies its SHA-256 against the release `SHA256SUMS` before installing, and
+replaces the running executable in place (moving the old one aside on Windows).
+If the binary lives in a system directory, run it with elevated privileges.
+There is no silent auto-update; wire `hftools update --check` into your own
+cron/CI if you want a periodic reminder. Set `GITHUB_TOKEN` to raise the API
+rate limit.
 
 ## Authentication
 

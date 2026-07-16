@@ -12,7 +12,7 @@ import (
 	"syscall"
 )
 
-const version = "0.8.1"
+const version = "0.9.0"
 
 type settings struct {
 	Endpoint              string   `json:"endpoint"`
@@ -123,6 +123,8 @@ func run(ctx context.Context, args []string) error {
 		return watchCommand(ctx, args[1:])
 	case "completion":
 		return completionCommand(args[1:])
+	case "update", "self-update":
+		return updateCommand(ctx, args[1:])
 	case "cache-export":
 		return cacheExportCommand(args[1:])
 	case "cache-import":

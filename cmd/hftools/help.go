@@ -65,6 +65,8 @@ func helpCommand(ctx context.Context, args []string) error {
 		err = watchCommand(ctx, []string{"-h"})
 	case "completion":
 		err = completionCommand([]string{"-h"})
+	case "update", "self-update":
+		err = updateCommand(ctx, []string{"-h"})
 	case "cache-export":
 		err = cacheExportCommand([]string{"-h"})
 	case "cache-import":
@@ -137,6 +139,7 @@ Hugging Face cache interop:
 Serve & shell:
   serve              Serve local downloads over the Hugging Face URL scheme
   completion         Emit a bash/zsh/fish completion script
+  update             Update this binary to the latest release (--check to test)
   version            Print version and target platform
   help               Show general or command-specific help
 

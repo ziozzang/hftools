@@ -36,6 +36,7 @@ Created by Jioh L. Jung <ziozzang@gmail.com> — [GitHub](https://github.com/zio
 - 오프라인/air-gapped 사용을 위한 Hugging Face 캐시 구조 상호 변환
 - 로컬 다운로드를 Hugging Face URL 스킴으로 오프라인 망에 서빙
 - bash/zsh/fish 셸 자동완성(`completion`)
+- SHA-256 검증을 거쳐 최신 릴리즈로 자기 업데이트(`update`)
 - macOS, Windows, Linux의 ARM64/x86-64 정적 바이너리
 
 ## 설치 및 빌드
@@ -63,6 +64,21 @@ make release
 결과는 `dist/`에 생성됩니다. 릴리스 빌드는 `CGO_ENABLED=0`, `netgo`,
 `osusergo`를 사용하며, 빌드 스크립트가 Linux 결과물의 정적 링크 여부도
 확인합니다.
+
+## 바이너리 업데이트
+
+```bash
+hftools update --check          # 새 릴리즈 존재 여부만 확인
+hftools update                  # 다운로드·검증 후 현재 바이너리 교체
+hftools update --version v0.8.1 # 특정 릴리즈 태그 설치
+```
+
+`update`는 플랫폼에 맞는 빌드를 GitHub 릴리즈에서 받아, 설치 전에 릴리즈의
+`SHA256SUMS`와 SHA-256을 대조해 검증한 뒤 실행 중인 바이너리를 그 자리에서
+교체합니다(Windows에서는 기존 파일을 옆으로 옮김). 시스템 디렉터리에 설치돼
+있으면 관리자 권한으로 실행하세요. 조용한 자동 업데이트는 하지 않습니다.
+주기적 알림이 필요하면 `hftools update --check`를 cron/CI에 연결하세요.
+`GITHUB_TOKEN`을 설정하면 API 호출 한도가 올라갑니다.
 
 ## 인증
 
