@@ -76,9 +76,19 @@ hftools update --version v0.8.1 # 특정 릴리즈 태그 설치
 `update`는 플랫폼에 맞는 빌드를 GitHub 릴리즈에서 받아, 설치 전에 릴리즈의
 `SHA256SUMS`와 SHA-256을 대조해 검증한 뒤 실행 중인 바이너리를 그 자리에서
 교체합니다(Windows에서는 기존 파일을 옆으로 옮김). 시스템 디렉터리에 설치돼
-있으면 관리자 권한으로 실행하세요. 조용한 자동 업데이트는 하지 않습니다.
-주기적 알림이 필요하면 `hftools update --check`를 cron/CI에 연결하세요.
-`GITHUB_TOKEN`을 설정하면 API 호출 한도가 올라갑니다.
+있으면 관리자 권한으로 실행하세요. `GITHUB_TOKEN`을 설정하면 API 호출 한도가
+올라갑니다.
+
+새 릴리즈가 있으면 명령 실행 뒤에 한 줄 안내를 출력합니다.
+
+```text
+hftools 0.9.1 is available (you have 0.9.0). Run 'hftools update' to upgrade.
+```
+
+이 확인은 하루 한 번만(결과를 캐시) 수행하고, **출력이 터미널일 때만** 표시하므로
+스크립트나 파이프 출력을 방해하지 않으며, 명령을 지연시키거나 실패시키지
+않습니다. 아무것도 자동 설치하지 않으며 업그레이드는 항상 명시적인
+`hftools update`입니다. `HFTOOLS_NO_UPDATE_CHECK=1`로 완전히 끌 수 있습니다.
 
 ## 인증
 

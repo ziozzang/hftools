@@ -79,9 +79,19 @@ hftools update --version v0.8.1 # install a specific release tag
 verifies its SHA-256 against the release `SHA256SUMS` before installing, and
 replaces the running executable in place (moving the old one aside on Windows).
 If the binary lives in a system directory, run it with elevated privileges.
-There is no silent auto-update; wire `hftools update --check` into your own
-cron/CI if you want a periodic reminder. Set `GITHUB_TOKEN` to raise the API
-rate limit.
+Set `GITHUB_TOKEN` to raise the API rate limit.
+
+hftools also prints a one-line notice after a command when a newer release is
+available:
+
+```text
+hftools 0.9.1 is available (you have 0.9.0). Run 'hftools update' to upgrade.
+```
+
+The check runs at most once a day (the result is cached), only when output is a
+terminal — so it never disturbs scripts or piped output — and it never blocks or
+fails the command. It never installs anything; upgrading is always the explicit
+`hftools update`. Disable it entirely with `HFTOOLS_NO_UPDATE_CHECK=1`.
 
 ## Authentication
 

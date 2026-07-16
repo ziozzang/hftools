@@ -12,7 +12,7 @@ import (
 	"syscall"
 )
 
-const version = "0.9.0"
+const version = "0.9.1"
 
 type settings struct {
 	Endpoint              string   `json:"endpoint"`
@@ -64,7 +64,11 @@ func defaults() settings {
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if err := run(ctx, os.Args[1:]); err != nil {
+	err := run(ctx, os.Args[1:])
+	// After the command runs, print a one-line notice if a newer release exists
+	// (throttled to once a day, terminal-only, silent on error/offline).
+	maybeNotifyUpdate(ctx, os.Args[1:])
+	if err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return
 		}
