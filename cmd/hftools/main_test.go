@@ -17,7 +17,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/ziozzang/hfdownload/internal/hub"
+	"github.com/ziozzang/hftools/internal/hub"
 )
 
 func TestBatchQueueAndCachedRerun(t *testing.T) {

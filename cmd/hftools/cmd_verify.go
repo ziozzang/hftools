@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ziozzang/hfdownload/internal/download"
-	"github.com/ziozzang/hfdownload/internal/hub"
-	"github.com/ziozzang/hfdownload/internal/progress"
-	"github.com/ziozzang/hfdownload/internal/state"
+	"github.com/ziozzang/hftools/internal/download"
+	"github.com/ziozzang/hftools/internal/hub"
+	"github.com/ziozzang/hftools/internal/progress"
+	"github.com/ziozzang/hftools/internal/state"
 )
 
 func verifyCommand(args []string) error {

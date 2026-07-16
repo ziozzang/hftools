@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ziozzang/hfdownload/internal/pickle"
+	"github.com/ziozzang/hftools/internal/pickle"
 )
 
 var pickleExtensions = []string{".bin", ".pt", ".pth", ".ckpt", ".pkl", ".pickle"}

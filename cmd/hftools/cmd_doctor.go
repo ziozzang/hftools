@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/ziozzang/hfdownload/internal/hfcache"
+	"github.com/ziozzang/hftools/internal/hfcache"
 )
 
 type doctorCheck struct {

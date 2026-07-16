@@ -8,7 +8,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/ziozzang/hfdownload/internal/hub"
+	"github.com/ziozzang/hftools/internal/hub"
 )
 
 func helpCommand(ctx context.Context, args []string) error {

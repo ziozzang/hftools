@@ -2,7 +2,7 @@
 
 한국어 | [English](README.md)
 
-Created by Jioh L. Jung <ziozzang@gmail.com> — [GitHub](https://github.com/ziozzang/hfdownload)
+Created by Jioh L. Jung <ziozzang@gmail.com> — [GitHub](https://github.com/ziozzang/hftools)
 
 `hftools`은 Hugging Face의 모델과 데이터셋 리포지터리를 낮은 리소스로 다루는
 툴킷입니다. 중단된 다운로드 이어받기와 HTTP Range 분할 다운로드를 지원하며,
@@ -40,11 +40,11 @@ Created by Jioh L. Jung <ziozzang@gmail.com> — [GitHub](https://github.com/zio
 
 ## 설치 및 빌드
 
-[GitHub Releases](https://github.com/ziozzang/hfdownload/releases)에서 미리
+[GitHub Releases](https://github.com/ziozzang/hftools/releases)에서 미리
 빌드한 바이너리를 받거나 Go 1.24 이상으로 빌드합니다.
 
 ```bash
-go install github.com/ziozzang/hfdownload/cmd/hftools@latest
+go install github.com/ziozzang/hftools/cmd/hftools@latest
 
 make build
 ./hftools version

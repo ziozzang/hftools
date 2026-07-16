@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ziozzang/hfdownload/internal/modelfile"
+	"github.com/ziozzang/hftools/internal/modelfile"
 )
 
 // buildSafetensors returns a minimal but valid safetensors file: an 8-byte

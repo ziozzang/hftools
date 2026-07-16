@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ziozzang/hfdownload/internal/hub"
+	"github.com/ziozzang/hftools/internal/hub"
 )
 
 func batchCommand(ctx context.Context, args []string) error {

@@ -11,9 +11,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ziozzang/hfdownload/internal/hfcache"
-	"github.com/ziozzang/hfdownload/internal/hub"
-	"github.com/ziozzang/hfdownload/internal/state"
+	"github.com/ziozzang/hftools/internal/hfcache"
+	"github.com/ziozzang/hftools/internal/hub"
+	"github.com/ziozzang/hftools/internal/state"
 )
 
 // cacheExportCommand converts an hftools download directory into the

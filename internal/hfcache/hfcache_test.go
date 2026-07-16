@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ziozzang/hfdownload/internal/state"
+	"github.com/ziozzang/hftools/internal/state"
 )
 
 func sha256hex(b []byte) string {

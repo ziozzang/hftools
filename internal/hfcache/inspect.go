@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ziozzang/hfdownload/internal/download"
+	"github.com/ziozzang/hftools/internal/download"
 )
 
 // ParseRepoFolder reverses RepoFolderName. It is best-effort: repo owners or

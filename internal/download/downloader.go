@@ -19,9 +19,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ziozzang/hfdownload/internal/hub"
-	"github.com/ziozzang/hfdownload/internal/progress"
-	"github.com/ziozzang/hfdownload/internal/state"
+	"github.com/ziozzang/hftools/internal/hub"
+	"github.com/ziozzang/hftools/internal/progress"
+	"github.com/ziozzang/hftools/internal/state"
 )
 
 type Options struct {

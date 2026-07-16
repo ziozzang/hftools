@@ -13,9 +13,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ziozzang/hfdownload/internal/download"
-	"github.com/ziozzang/hfdownload/internal/hub"
-	"github.com/ziozzang/hfdownload/internal/state"
+	"github.com/ziozzang/hftools/internal/download"
+	"github.com/ziozzang/hftools/internal/hub"
+	"github.com/ziozzang/hftools/internal/state"
 )
 
 // serveCommand exposes local downloads over the Hugging Face Hub URL scheme so

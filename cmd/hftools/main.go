@@ -153,5 +153,5 @@ func run(ctx context.Context, args []string) error {
 }
 
 func printVersion(w io.Writer) {
-	fmt.Fprintf(w, "hftools %s (%s/%s)\nCreated by Jioh L. Jung <ziozzang@gmail.com>\nGitHub: https://github.com/ziozzang/hfdownload\n", version, runtime.GOOS, runtime.GOARCH)
+	fmt.Fprintf(w, "hftools %s (%s/%s)\nCreated by Jioh L. Jung <ziozzang@gmail.com>\nGitHub: https://github.com/ziozzang/hftools\n", version, runtime.GOOS, runtime.GOARCH)
 }

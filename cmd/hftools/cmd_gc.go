@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ziozzang/hfdownload/internal/hfcache"
-	"github.com/ziozzang/hfdownload/internal/state"
+	"github.com/ziozzang/hftools/internal/hfcache"
+	"github.com/ziozzang/hftools/internal/state"
 )
 
 var repoMetaFiles = map[string]bool{".sha256": true, ".sha1sum": true, signatureFile: true, ".hftools.json": true, ".hfdown.json": true}

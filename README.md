@@ -2,7 +2,7 @@
 
 English | [한국어](README_KO.md)
 
-Created by Jioh L. Jung <ziozzang@gmail.com> — [GitHub](https://github.com/ziozzang/hfdownload)
+Created by Jioh L. Jung <ziozzang@gmail.com> — [GitHub](https://github.com/ziozzang/hftools)
 
 `hftools` is a low-resource, resumable toolkit for Hugging Face model and
 dataset repositories. It resolves a revision to a Git commit, downloads files
@@ -42,11 +42,11 @@ around the same integrity-first, offline-friendly core.
 ## Install and build
 
 Download a prebuilt binary from
-[GitHub Releases](https://github.com/ziozzang/hfdownload/releases), or build
+[GitHub Releases](https://github.com/ziozzang/hftools/releases), or build
 with Go 1.24 or newer:
 
 ```bash
-go install github.com/ziozzang/hfdownload/cmd/hftools@latest
+go install github.com/ziozzang/hftools/cmd/hftools@latest
 
 make build
 ./hftools version

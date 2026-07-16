@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ziozzang/hfdownload/internal/hub"
-	"github.com/ziozzang/hfdownload/internal/state"
+	"github.com/ziozzang/hftools/internal/hub"
+	"github.com/ziozzang/hftools/internal/state"
 )
 
 // resolveToken returns the explicit token or the value of the configured env var.

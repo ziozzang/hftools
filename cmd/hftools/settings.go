@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/ziozzang/hfdownload/internal/hub"
+	"github.com/ziozzang/hftools/internal/hub"
 )
 
 func loadSettings(args []string) (settings, string, error) {

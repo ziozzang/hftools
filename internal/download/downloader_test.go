@@ -17,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ziozzang/hfdownload/internal/hub"
-	"github.com/ziozzang/hfdownload/internal/progress"
+	"github.com/ziozzang/hftools/internal/hub"
+	"github.com/ziozzang/hftools/internal/progress"
 )
 
 func TestMultipartResumeAndHashVerification(t *testing.T) {

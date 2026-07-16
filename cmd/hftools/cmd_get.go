@@ -11,10 +11,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ziozzang/hfdownload/internal/download"
-	"github.com/ziozzang/hfdownload/internal/hub"
-	"github.com/ziozzang/hfdownload/internal/modelfile"
-	"github.com/ziozzang/hfdownload/internal/progress"
+	"github.com/ziozzang/hftools/internal/download"
+	"github.com/ziozzang/hftools/internal/hub"
+	"github.com/ziozzang/hftools/internal/modelfile"
+	"github.com/ziozzang/hftools/internal/progress"
 )
 
 type barWriter struct{ bar *progress.Bar }

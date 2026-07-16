@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ziozzang/hfdownload/internal/sign"
-	"github.com/ziozzang/hfdownload/internal/state"
+	"github.com/ziozzang/hftools/internal/sign"
+	"github.com/ziozzang/hftools/internal/state"
 )
 
 const signatureFile = ".sha256.sig"
