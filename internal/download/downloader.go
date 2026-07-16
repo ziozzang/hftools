@@ -646,7 +646,7 @@ func SafeTarget(root, remotePath string) (string, error) {
 		return "", fmt.Errorf("unsafe repository path %q", remotePath)
 	}
 	if clean == "tmp" || strings.HasPrefix(clean, "tmp"+string(filepath.Separator)) || clean == ".metadata" || strings.HasPrefix(clean, ".metadata"+string(filepath.Separator)) || clean == ".hfdown" || strings.HasPrefix(clean, ".hfdown"+string(filepath.Separator)) || clean == "hfdown-metadata" || strings.HasPrefix(clean, "hfdown-metadata"+string(filepath.Separator)) || clean == ".sha256" || clean == ".sha1sum" {
-		return "", fmt.Errorf("repository path %q conflicts with hfdown metadata", remotePath)
+		return "", fmt.Errorf("repository path %q conflicts with hftools metadata", remotePath)
 	}
 	rootAbs, err := filepath.Abs(root)
 	if err != nil {

@@ -1,7 +1,7 @@
 .PHONY: build release test clean
 
 build:
-	go build -buildvcs=false -trimpath -ldflags="-s -w" -o hfdown ./cmd/hfdown
+	go build -buildvcs=false -trimpath -ldflags="-s -w" -o hftools ./cmd/hftools
 
 release:
 	./scripts/build-release.sh
@@ -10,4 +10,4 @@ test:
 	go test ./...
 
 clean:
-	rm -f hfdown
+	rm -f hftools

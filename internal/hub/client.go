@@ -196,7 +196,7 @@ func (c *Client) NewDownloadRequest(ctx context.Context, rawURL string, start, e
 }
 
 func (c *Client) setHeaders(req *http.Request) {
-	req.Header.Set("User-Agent", "hfdown/1")
+	req.Header.Set("User-Agent", "hftools/1")
 	if c.Token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.Token)
 	}

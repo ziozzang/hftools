@@ -14,8 +14,13 @@ func loadSettings(args []string) (settings, string, error) {
 	cfg := defaults()
 	configPath := findFlagValue(args, "config")
 	if configPath == "" {
-		if _, err := os.Stat(".hfdown.json"); err == nil {
-			configPath = ".hfdown.json"
+		// Prefer the current config name; keep reading the legacy name so
+		// existing project directories continue to work after the rename.
+		for _, candidate := range []string{".hftools.json", ".hfdown.json"} {
+			if _, err := os.Stat(candidate); err == nil {
+				configPath = candidate
+				break
+			}
 		}
 	}
 	if configPath != "" {

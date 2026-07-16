@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="${ROOT_DIR}/dist"
-VERSION="${VERSION:-0.7.0}"
+VERSION="${VERSION:-0.8.0}"
 
 if [[ ! "${VERSION}" =~ ^[0-9A-Za-z._-]+$ ]]; then
   echo "invalid VERSION: ${VERSION}" >&2
@@ -28,13 +28,13 @@ for target in "${targets[@]}"; do
   if [[ "${goos}" == "windows" ]]; then
     extension=".exe"
   fi
-  filename="hfdown_${VERSION}_${platform}_${arch}${extension}"
+  filename="hftools_${VERSION}_${platform}_${arch}${extension}"
   output="${DIST_DIR}/${filename}"
   echo "building ${filename}"
   (
     cd "${ROOT_DIR}"
     CGO_ENABLED=0 GOOS="${goos}" GOARCH="${goarch}" \
-      go build -buildvcs=false -trimpath -tags="netgo,osusergo" -ldflags="-s -w" -o "${output}" ./cmd/hfdown
+      go build -buildvcs=false -trimpath -tags="netgo,osusergo" -ldflags="-s -w" -o "${output}" ./cmd/hftools
   )
 	if ! go version -m "${output}" 2>&1 | grep -q 'CGO_ENABLED=0'; then
 	  echo "static-build verification failed for ${filename}: CGO_ENABLED is not 0" >&2

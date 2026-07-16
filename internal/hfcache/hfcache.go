@@ -1,4 +1,4 @@
-// Package hfcache converts between hfdown's flat download layout and the
+// Package hfcache converts between hftools' flat download layout and the
 // huggingface_hub local cache layout, so downloads can be moved into an
 // air-gapped machine and used offline by the HF Python libraries (and back).
 //
@@ -11,7 +11,7 @@
 //
 // where repo_folder is "models--org--name" (or "datasets--..."), and etag is
 // the LFS SHA-256 for LFS files or the git blob SHA-1 for regular files — the
-// exact hashes hfdown already records per file.
+// exact hashes hftools already records per file.
 package hfcache
 
 import (
@@ -105,7 +105,7 @@ func isHex(s string, n int) bool {
 // ExportOptions configures Export.
 type ExportOptions struct {
 	Manifest   *state.Manifest
-	SourceDir  string // hfdown flat download directory
+	SourceDir  string // hftools flat download directory
 	CacheRoot  string // HF cache root (blank -> DefaultCacheRoot)
 	Copy       bool   // copy blobs instead of hardlinking
 	BufferSize int
@@ -248,7 +248,7 @@ type ImportOptions struct {
 	RepoID     string
 	RepoType   string
 	Revision   string // branch/tag/commit; blank -> "main"
-	DestDir    string // hfdown flat output directory
+	DestDir    string // hftools flat output directory
 	BufferSize int
 }
 
@@ -260,7 +260,7 @@ type ImportResult struct {
 	Bytes   int64
 }
 
-// Import materializes an HF cache snapshot into hfdown's flat layout, hashing
+// Import materializes an HF cache snapshot into hftools' flat layout, hashing
 // every file, verifying it against its content-addressed blob name, and
 // returning a reconstructed manifest ready to be persisted.
 func Import(opts ImportOptions) (*state.Manifest, ImportResult, error) {

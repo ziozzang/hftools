@@ -12,7 +12,7 @@ import (
 	"syscall"
 )
 
-const version = "0.7.0"
+const version = "0.8.0"
 
 type settings struct {
 	Endpoint              string   `json:"endpoint"`
@@ -32,6 +32,7 @@ type settings struct {
 	TokenEnv              string   `json:"token_env"`
 	Token                 string   `json:"-"`
 	Tag                   string   `json:"-"`
+	DryRun                bool     `json:"-"`
 	Filters               []string `json:"filters,omitempty"`
 }
 
@@ -90,6 +91,38 @@ func run(ctx context.Context, args []string) error {
 		return verifyBatchCommand(args[1:])
 	case "status":
 		return statusCommand(args[1:])
+	case "info", "show":
+		return infoCommand(ctx, args[1:])
+	case "ls":
+		return lsCommand(ctx, args[1:])
+	case "diff":
+		return diffCommand(ctx, args[1:])
+	case "du":
+		return duCommand(args[1:])
+	case "get", "cat":
+		return getCommand(ctx, args[1:])
+	case "peek":
+		return peekCommand(ctx, args[1:])
+	case "scan":
+		return scanCommand(args[1:])
+	case "sign":
+		return signCommand(args[1:])
+	case "verify-sig":
+		return verifySigCommand(args[1:])
+	case "gc":
+		return gcCommand(args[1:])
+	case "cache-gc":
+		return cacheGCCommand(args[1:])
+	case "dedup":
+		return dedupCommand(args[1:])
+	case "repair":
+		return repairCommand(ctx, args[1:])
+	case "doctor":
+		return doctorCommand(ctx, args[1:])
+	case "watch":
+		return watchCommand(ctx, args[1:])
+	case "completion":
+		return completionCommand(args[1:])
 	case "cache-export":
 		return cacheExportCommand(args[1:])
 	case "cache-import":
@@ -104,7 +137,7 @@ func run(ctx context.Context, args []string) error {
 		return serveCommand(ctx, args[1:])
 	case "version", "--version", "-version", "-v", "-V":
 		if len(args) != 1 {
-			return fmt.Errorf("usage: hfdown version")
+			return fmt.Errorf("usage: hftools version")
 		}
 		printVersion(os.Stdout)
 		return nil
@@ -120,5 +153,5 @@ func run(ctx context.Context, args []string) error {
 }
 
 func printVersion(w io.Writer) {
-	fmt.Fprintf(w, "hfdown %s (%s/%s)\nCreated by Jioh L. Jung <ziozzang@gmail.com>\nGitHub: https://github.com/ziozzang/hfdownload\n", version, runtime.GOOS, runtime.GOARCH)
+	fmt.Fprintf(w, "hftools %s (%s/%s)\nCreated by Jioh L. Jung <ziozzang@gmail.com>\nGitHub: https://github.com/ziozzang/hfdownload\n", version, runtime.GOOS, runtime.GOARCH)
 }

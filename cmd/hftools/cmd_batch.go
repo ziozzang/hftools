@@ -46,7 +46,7 @@ func batchCommand(ctx context.Context, args []string) error {
 		if fs.NArg() == 1 {
 			queuePath = fs.Arg(0)
 		} else {
-			return fmt.Errorf("usage: hfdown batch [options] --queue FILE")
+			return fmt.Errorf("usage: hftools batch [options] --queue FILE")
 		}
 	} else if fs.NArg() != 0 {
 		return fmt.Errorf("queue supplied both with --queue and as an argument")

@@ -63,7 +63,7 @@ func verifyBatchCommand(args []string) error {
 		return err
 	}
 	if len(repositories) == 0 {
-		return fmt.Errorf("no hfdown repository directories found under %s", root)
+		return fmt.Errorf("no hftools repository directories found under %s", root)
 	}
 	sort.Strings(repositories)
 	var failures []string
@@ -193,7 +193,7 @@ func statusCommand(args []string) error {
 		return err
 	}
 	if m == nil {
-		return fmt.Errorf("no hfdown manifest in %s", root)
+		return fmt.Errorf("no hftools manifest in %s", root)
 	}
 	var bytes int64
 	for _, f := range m.Files {

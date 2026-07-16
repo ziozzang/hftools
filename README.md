@@ -1,12 +1,17 @@
-# hfdown
+# hftools
 
 English | [한국어](README_KO.md)
 
 Created by Jioh L. Jung <ziozzang@gmail.com> — [GitHub](https://github.com/ziozzang/hfdownload)
 
-`hfdown` is a low-resource, resumable downloader for Hugging Face model and
+`hftools` is a low-resource, resumable toolkit for Hugging Face model and
 dataset repositories. It resolves a revision to a Git commit, downloads files
-with HTTP Range requests, and verifies them against Git blob or Git LFS hashes.
+with HTTP Range requests, and verifies them against Git blob or Git LFS hashes —
+plus a suite of inspection, security, provenance, and maintenance commands built
+around the same integrity-first, offline-friendly core.
+
+> Formerly `hfdown`. The binary and command are now `hftools`; on-disk metadata
+> and the legacy `.hfdown.json` config are still read for backward compatibility.
 
 ## Features
 
@@ -22,8 +27,16 @@ with HTTP Range requests, and verifies them against Git blob or Git LFS hashes.
 - Plain-text lists and per-job JSON queues
 - Recursive batch verification and forced full rehashing
 - Incremental updates that fetch only remotely changed files
+- Inspect remote repositories without downloading: `info`, `ls`, `diff`, and
+  `peek` (read a safetensors/GGUF header via a single Range request)
+- `get` a single file (to a path or stdout); `dry-run` any download
+- Scan pickle/torch checkpoints for unsafe imports (`scan`)
+- ed25519 provenance signatures over the content manifest (`sign` / `verify-sig`)
+- Storage tools: `du`, `gc`, cross-repo hardlink `dedup`, and HF-cache `cache-gc`
+- `repair` corrupt downloads, `watch` for upstream changes, `doctor` the environment
 - Convert to and from the Hugging Face cache layout for offline / air-gapped use
 - Serve local downloads over the Hugging Face URL scheme to an offline fleet
+- Shell completion for bash, zsh, and fish (`completion`)
 - Static binaries for macOS, Windows, and Linux on ARM64 and x86-64
 
 ## Install and build
@@ -33,15 +46,15 @@ Download a prebuilt binary from
 with Go 1.24 or newer:
 
 ```bash
-go install github.com/ziozzang/hfdownload/cmd/hfdown@latest
+go install github.com/ziozzang/hfdownload/cmd/hftools@latest
 
 make build
-./hfdown version
-./hfdown --help
+./hftools version
+./hftools --help
 ```
 
-Use `hfdown help COMMAND` or `hfdown COMMAND --help` for command-specific
-options. `hfdown --version`, `hfdown -v`, and `hfdown -V` are version aliases.
+Use `hftools help COMMAND` or `hftools COMMAND --help` for command-specific
+options. `hftools --version`, `hftools -v`, and `hftools -V` are version aliases.
 
 Build all six release targets:
 
@@ -59,14 +72,14 @@ The token is read with `os.Getenv("HF_TOKEN")` by default:
 
 ```bash
 export HF_TOKEN=hf_xxx
-hfdown d owner/model
+hftools d owner/model
 ```
 
 Choose another environment variable or supply a token directly:
 
 ```bash
-hfdown d --token-env MY_HF_TOKEN owner/model
-hfdown d --token hf_xxx owner/model
+hftools d --token-env MY_HF_TOKEN owner/model
+hftools d --token hf_xxx owner/model
 ```
 
 The environment form is safer because command-line arguments can appear in
@@ -79,16 +92,16 @@ checksums, configuration, or logs.
 accepted. The default local directory is `<owner>_<repo>`.
 
 ```bash
-hfdown download FluidInference/silero-vad-coreml
-hfdown dn FluidInference/silero-vad-coreml
-hfdown d https://huggingface.co/FluidInference/silero-vad-coreml
+hftools download FluidInference/silero-vad-coreml
+hftools dn FluidInference/silero-vad-coreml
+hftools d https://huggingface.co/FluidInference/silero-vad-coreml
 # -> ./FluidInference_silero-vad-coreml/
 ```
 
 Custom destination and multipart settings:
 
 ```bash
-hfdown d \
+hftools d \
   --output ./models/silero-vad \
   --parts 8 \
   --multipart-threshold 64MiB \
@@ -101,8 +114,8 @@ hfdown d \
 accepted. The default directory naming rule is also `<owner>_<repo>`.
 
 ```bash
-hfdown dataset lhoestq/demo1
-hfdown ds https://huggingface.co/datasets/lhoestq/demo1
+hftools dataset lhoestq/demo1
+hftools ds https://huggingface.co/datasets/lhoestq/demo1
 # -> ./lhoestq_demo1/
 ```
 
@@ -112,8 +125,8 @@ hfdown ds https://huggingface.co/datasets/lhoestq/demo1
 alias that overrides `--revision`.
 
 ```bash
-hfdown d --tag v1.2.0 owner/model
-hfdown ds --revision 0123456789abcdef owner/dataset
+hftools d --tag v1.2.0 owner/model
+hftools ds --revision 0123456789abcdef owner/dataset
 ```
 
 `--filter` selects files using shell-style globs. Matching is
@@ -121,16 +134,16 @@ case-insensitive. Multiple filters are OR conditions and can be supplied by
 repeating the option, using `|`, or both:
 
 ```bash
-hfdown d \
+hftools d \
   --filter '*.json|*.parquet|*_q4_?.gguf' \
   owner/model
 
-hfdown d \
+hftools d \
   --filter '*.json' \
   --filter '*.gguf' \
   owner/model
 
-hfdown d \
+hftools d \
   --tag Q4-release \
   --filter 'weights/*_q4_?.gguf|tokenizer*.json' \
   owner/model
@@ -180,14 +193,14 @@ openai-community/gpt2
 Download a model list:
 
 ```bash
-hfdown batch --list models.txt
-hfdown batch --list models.txt --output-root ./models --continue-on-error
+hftools batch --list models.txt
+hftools batch --list models.txt --output-root ./models --continue-on-error
 ```
 
 Download a dataset list using the same format:
 
 ```bash
-hfdown batch --type dataset --list datasets.txt --output-root ./datasets
+hftools batch --type dataset --list datasets.txt --output-root ./datasets
 ```
 
 Global `--tag` and `--filter` options also apply to batch list entries. See
@@ -216,8 +229,8 @@ Use a JSON queue for mixed repository types or per-job settings:
 ```
 
 ```bash
-hfdown batch --queue queue.json
-hfdown batch --queue queue.json --continue-on-error
+hftools batch --queue queue.json
+hftools batch --queue queue.json --continue-on-error
 ```
 
 See [`queue.example.json`](queue.example.json) for all common per-job options.
@@ -255,7 +268,7 @@ Resume mode is enabled by default.
 
 ## Progress display
 
-Before transfer, `hfdown` prints the complete selected-file plan:
+Before transfer, `hftools` prints the complete selected-file plan:
 
 ```text
 plan: 42 files • 14.8 GiB total • 35 cached (9.2 GiB) • 7 remaining (5.6 GiB)
@@ -271,15 +284,15 @@ bytes.
 Metadata-cached verification avoids rehashing unchanged files:
 
 ```bash
-hfdown verify --output ./FluidInference_silero-vad-coreml
+hftools verify --output ./FluidInference_silero-vad-coreml
 ```
 
 Force a full read and rehash, or recursively verify every managed repository:
 
 ```bash
-hfdown verify --output ./FluidInference_silero-vad-coreml --force
-hfdown verify-batch --root ./models --force
-hfdown status --output ./FluidInference_silero-vad-coreml
+hftools verify --output ./FluidInference_silero-vad-coreml --force
+hftools verify-batch --root ./models --force
+hftools status --output ./FluidInference_silero-vad-coreml
 ```
 
 `verify-batch` continues after failures by default; add `--fail-fast` to stop
@@ -292,29 +305,29 @@ keeps the download pinned.
 
 ## Offline use and the Hugging Face cache
 
-For air-gapped machines you can move a download between hfdown's flat layout and
+For air-gapped machines you can move a download between hftools's flat layout and
 the `huggingface_hub` cache layout, so the Python libraries (`transformers`,
 `diffusers`, `datasets`, …) can load it offline.
 
 ```bash
 # Flat download -> HF cache (blobs + snapshot symlinks + refs)
-hfdown cache-export --output ./owner_model --cache ~/.cache/huggingface/hub
+hftools cache-export --output ./owner_model --cache ~/.cache/huggingface/hub
 
 # HF cache snapshot -> flat download directory (hashes and verifies every file)
-hfdown cache-import --repo owner/model --cache ~/.cache/huggingface/hub --output ./owner_model
+hftools cache-import --repo owner/model --cache ~/.cache/huggingface/hub --output ./owner_model
 ```
 
 - `cache-export` reads the download's manifest and writes
   `models--owner--model/{blobs,snapshots/<commit>,refs}`. Blobs are named by
   their Hugging Face etag — the LFS SHA-256 for LFS files, the git blob SHA-1
-  for regular files — which hfdown already records, so nothing is re-hashed.
+  for regular files — which hftools already records, so nothing is re-hashed.
   Blobs are hardlinked from the source by default (`--copy` to copy instead);
   snapshot entries are relative symlinks, falling back to copies where symlinks
   are unavailable (e.g. Windows).
 - `cache-import` resolves the commit from `refs/<revision>`, then hashes each
   snapshot file and checks it against its content-addressed blob name, so a
-  corrupt transfer is caught. It writes a fresh hfdown manifest, `.sha256`, and
-  `.sha1sum`, making the result a first-class hfdown directory you can `verify`.
+  corrupt transfer is caught. It writes a fresh hftools manifest, `.sha256`, and
+  `.sha1sum`, making the result a first-class hftools directory you can `verify`.
 - `--cache` defaults to `$HF_HUB_CACHE`, then `$HF_HOME/hub`, then
   `~/.cache/huggingface/hub`. `--type dataset` handles dataset repositories.
 
@@ -328,36 +341,119 @@ export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 
 Related cache utilities:
 
-- `hfdown cache-list --cache DIR` lists the repositories stored in a cache.
-- `hfdown cache-verify --cache DIR [--repo OWNER/NAME]` rehashes every blob and
+- `hftools cache-list --cache DIR` lists the repositories stored in a cache.
+- `hftools cache-verify --cache DIR [--repo OWNER/NAME]` rehashes every blob and
   checks it against its content-addressed name. It needs no manifest, so it
   validates a cache received across an air gap on its own.
-- `hfdown cache-import-batch --cache DIR --output-root OUT` imports every
+- `hftools cache-import-batch --cache DIR --output-root OUT` imports every
   repository in a cache into flat directories at once. Import is resumable — an
   already-present, correct file is reused rather than re-copied.
-- `hfdown cache-export --archive repo.tar` additionally writes a `.tar` bundle
+- `hftools cache-export --archive repo.tar` additionally writes a `.tar` bundle
   (and `repo.tar.sha256`) of the exported repository for transfer on physical
   media; unpack it under a cache root and it is ready to use.
 
 ## Serve downloads to an offline fleet
 
 On an isolated network, run one host as a mirror and let other machines download
-from it with hfdown (or any client using the Hugging Face URL scheme):
+from it with hftools (or any client using the Hugging Face URL scheme):
 
 ```bash
-# On the mirror host (holds hfdown download directories under ./repos):
-hfdown serve --root ./repos --addr 0.0.0.0:8080
+# On the mirror host (holds hftools download directories under ./repos):
+hftools serve --root ./repos --addr 0.0.0.0:8080
 
 # On another machine on the same network:
-hfdown download --endpoint http://mirror-host:8080 owner/model
+hftools download --endpoint http://mirror-host:8080 owner/model
 ```
 
-`serve` indexes every hfdown repository under `--root` (each a directory with a
+`serve` indexes every hftools repository under `--root` (each a directory with a
 `.metadata/manifest.json`) and answers the Hub metadata API and the ranged
 `resolve` download endpoint from local files, so range requests, resume, and the
 retry/stall logic all work against it unchanged. It serves the revision each
 repository was downloaded at (its branch or tag name, or the commit). Pass
-`--token-env VAR` to require `Authorization: Bearer <value-of-VAR>`.
+`--token-env VAR` to require `Authorization: Bearer <value-of-VAR>`. A browsable
+index is served at `/` and a liveness probe at `/health`.
+
+## Inspect a repository without downloading
+
+```bash
+hftools info owner/model              # summary: files, size, LFS, gated, tags
+hftools ls --long owner/model         # per-file sizes and LFS markers
+hftools ls --filter '*.safetensors' owner/model
+hftools peek owner/model model.safetensors   # tensor count, dtypes, params
+hftools diff --output ./owner_model   # compare a local download to the remote
+hftools download --dry-run owner/model
+```
+
+`peek` reads only the file header via a single HTTP Range request, so it reports
+the tensor count, dtypes, shapes, and parameter total of a multi-gigabyte
+safetensors or GGUF checkpoint by transferring a few megabytes. `info`, `ls`,
+`diff`, `du`, `peek`, and `scan` all accept `--json` for scripting.
+
+## Fetch a single file
+
+```bash
+hftools get owner/model config.json                 # -> ./config.json (verified)
+hftools get owner/model config.json -o -            # to stdout
+```
+
+`get` (alias `cat`) resolves the commit, downloads one file, and verifies it
+against the Hub hash before writing it.
+
+## Scan checkpoints for unsafe code
+
+```bash
+hftools scan ./owner_model            # scan a directory of downloads
+hftools scan pytorch_model.bin        # scan one file
+```
+
+`scan` statically walks the pickle opcode stream of `.bin`/`.pt`/`.pth`/`.ckpt`/
+`.pkl` files (including torch zip archives) **without unpickling them**, and
+flags the import references that enable code execution on load (`os`,
+`subprocess`, `builtins.eval`, …). It exits non-zero when a critical import is
+found. This is a heuristic aid, not a guarantee — treat unknown checkpoints as
+untrusted.
+
+## Provenance signatures
+
+Hashing proves a download is intact; a signature proves who produced it — useful
+when a repository is carried across an air gap.
+
+```bash
+# Signer (holds the private key):
+hftools sign --output ./owner_model --gen-key key.pem   # prints the public key
+# Recipient (pins the public key out-of-band):
+hftools verify-sig --output ./owner_model --pubkey <hex-or-key-file>
+```
+
+`sign` signs the repository's content-addressed `.sha256` manifest with ed25519
+and stores the detached signature in `.metadata/signature.json` and `.sha256.sig`.
+Without `--pubkey`, `verify-sig` only proves the content is unchanged since
+signing; pin the key to prove provenance.
+
+## Storage and maintenance
+
+```bash
+hftools du --root ./repos --by-type          # disk usage per repo / extension
+hftools gc --root ./repos --tmp --orphans    # reclaim (dry run; add --yes)
+hftools dedup --root ./repos --yes           # hardlink identical files across repos
+hftools cache-gc --cache ~/.cache/huggingface/hub   # drop unreferenced HF-cache blobs
+hftools repair --output ./owner_model        # deep-verify and re-fetch bad files
+hftools watch --interval 600 owner/model     # periodically pull upstream changes
+hftools doctor                               # environment / network / filesystem check
+```
+
+`gc`, `dedup`, and `cache-gc` are dry runs by default and delete only with
+`--yes`. `dedup` links byte-identical files (matched by recorded SHA-256) so a
+model family sharing tokenizers/configs stores one copy; cross-filesystem pairs
+are skipped.
+
+## Shell completion
+
+```bash
+hftools completion bash > /etc/bash_completion.d/hftools
+hftools completion zsh  > "${fpath[1]}/_hftools"
+hftools completion fish > ~/.config/fish/completions/hftools.fish
+```
 
 ## Repository layout
 

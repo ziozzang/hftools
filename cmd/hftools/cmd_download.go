@@ -43,12 +43,73 @@ func repositoryCommand(ctx context.Context, args []string, repoType hub.RepoType
 		if fs.NArg() == 1 {
 			repo = fs.Arg(0)
 		} else {
-			return fmt.Errorf("usage: hfdown %s [options] REPO", commandName)
+			return fmt.Errorf("usage: hftools %s [options] REPO", commandName)
 		}
 	} else if fs.NArg() != 0 {
 		return fmt.Errorf("repository supplied both with --repo and as an argument")
 	}
+	if cfg.DryRun {
+		return planRepository(ctx, cfg, repo, repoType)
+	}
 	return syncRepository(ctx, cfg, repo, repoType)
+}
+
+// planRepository resolves a repository and prints what a download would do,
+// touching no files (it only reads an existing manifest to recognize cached
+// files).
+func planRepository(ctx context.Context, cfg settings, repoID string, repoType hub.RepoType) error {
+	if err := repoType.Validate(); err != nil {
+		return err
+	}
+	if err := validateSettings(cfg); err != nil {
+		return err
+	}
+	var err error
+	repoID, err = hub.NormalizeRepoID(repoID)
+	if err != nil {
+		return err
+	}
+	if cfg.Output == "" {
+		cfg.Output = hub.LocalDirectoryName(repoID)
+	}
+	root, err := filepath.Abs(cfg.Output)
+	if err != nil {
+		return err
+	}
+	m, err := loadExistingManifest(root)
+	if err != nil {
+		return err
+	}
+	info, err := newHubClient(cfg).RepoInfo(ctx, repoType, repoID, cfg.Revision)
+	if err != nil {
+		return err
+	}
+	files, err := filterRepoFiles(info.Siblings, cfg.Filters)
+	if err != nil {
+		return err
+	}
+	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
+	var total, cachedBytes int64
+	var cachedFiles int
+	for _, f := range files {
+		total += f.Size
+		target, terr := download.SafeTarget(root, f.Path)
+		if terr != nil {
+			return terr
+		}
+		var rec *state.FileRecord
+		if m != nil {
+			rec = m.Files[f.Path]
+		}
+		if recordCurrent(target, f, rec) {
+			cachedFiles++
+			cachedBytes += f.Size
+		}
+	}
+	fmt.Printf("plan for %s@%s\ndestination: %s\ncommit: %s\n", repoID, cfg.Revision, root, info.SHA)
+	fmt.Printf("files: %d • total: %s • cached: %d (%s) • to download: %d (%s)\n",
+		len(files), humanBytes(total), cachedFiles, humanBytes(cachedBytes), len(files)-cachedFiles, humanBytes(total-cachedBytes))
+	return nil
 }
 
 func syncRepo(ctx context.Context, cfg settings, repoID string) error {

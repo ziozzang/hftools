@@ -16,12 +16,12 @@ import (
 	"github.com/ziozzang/hfdownload/internal/state"
 )
 
-// cacheExportCommand converts an hfdown download directory into the
+// cacheExportCommand converts an hftools download directory into the
 // huggingface_hub cache layout so it can be used offline by HF libraries.
 func cacheExportCommand(args []string) error {
 	fs := flag.NewFlagSet("cache-export", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
-	output := fs.String("output", ".", "hfdown download directory to export")
+	output := fs.String("output", ".", "hftools download directory to export")
 	cache := fs.String("cache", "", "HF cache root (default: $HF_HUB_CACHE, $HF_HOME/hub, or ~/.cache/huggingface/hub)")
 	copyBlobs := fs.Bool("copy", false, "copy blobs instead of hardlinking them from the source")
 	archive := fs.String("archive", "", "also write a .tar bundle (and .sha256) of the exported repository to this path")
@@ -41,7 +41,7 @@ func cacheExportCommand(args []string) error {
 		return err
 	}
 	if m == nil {
-		return fmt.Errorf("no hfdown manifest in %s", root)
+		return fmt.Errorf("no hftools manifest in %s", root)
 	}
 	res, err := hfcache.Export(hfcache.ExportOptions{
 		Manifest: m, SourceDir: root, CacheRoot: *cache, Copy: *copyBlobs, BufferSize: 1 << 20,
@@ -63,7 +63,7 @@ func cacheExportCommand(args []string) error {
 	return nil
 }
 
-// cacheImportCommand converts a huggingface_hub cache snapshot into hfdown's
+// cacheImportCommand converts a huggingface_hub cache snapshot into hftools'
 // flat layout, hashing and verifying every file and writing a fresh manifest.
 func cacheImportCommand(args []string) error {
 	fs := flag.NewFlagSet("cache-import", flag.ContinueOnError)

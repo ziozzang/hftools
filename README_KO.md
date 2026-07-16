@@ -1,13 +1,17 @@
-# hfdown
+# hftools
 
 한국어 | [English](README.md)
 
 Created by Jioh L. Jung <ziozzang@gmail.com> — [GitHub](https://github.com/ziozzang/hfdownload)
 
-`hfdown`은 Hugging Face의 모델과 데이터셋 리포지터리를 낮은 리소스로
-다운로드하는 프로그램입니다. 중단된 다운로드 이어받기와 HTTP Range 분할
-다운로드를 지원하며, 리비전을 Git 커밋으로 확정한 뒤 Git blob 또는 Git LFS
-해시로 받은 파일을 검증합니다.
+`hftools`은 Hugging Face의 모델과 데이터셋 리포지터리를 낮은 리소스로 다루는
+툴킷입니다. 중단된 다운로드 이어받기와 HTTP Range 분할 다운로드를 지원하며,
+리비전을 Git 커밋으로 확정한 뒤 Git blob 또는 Git LFS 해시로 받은 파일을
+검증합니다. 여기에 동일한 무결성·오프라인 지향 코어 위에 조사·보안·출처 증명·
+유지보수 명령들을 함께 제공합니다.
+
+> 이전 이름은 `hfdown`입니다. 바이너리와 명령은 이제 `hftools`이며, 온디스크
+> 메타데이터와 레거시 `.hfdown.json` 설정은 하위 호환을 위해 계속 읽습니다.
 
 ## 주요 기능
 
@@ -22,8 +26,16 @@ Created by Jioh L. Jung <ziozzang@gmail.com> — [GitHub](https://github.com/zio
 - 단순 텍스트 목록과 작업별 설정이 가능한 JSON 큐
 - 전체 디렉터리 순회 검증과 강제 전수 재해시
 - 원격 객체 해시가 바뀐 파일만 받는 증분 업데이트
+- 다운로드 없이 원격 조사: `info`, `ls`, `diff`, `peek`(safetensors/GGUF 헤더를
+  Range 한 번으로 읽음)
+- 단일 파일 받기 `get`(파일 또는 stdout), 모든 다운로드의 `--dry-run`
+- pickle/torch 체크포인트의 위험 import 스캔(`scan`)
+- 콘텐츠 매니페스트에 대한 ed25519 출처 서명(`sign` / `verify-sig`)
+- 저장 도구: `du`, `gc`, 리포 간 하드링크 `dedup`, HF 캐시 `cache-gc`
+- 손상 복구 `repair`, 상류 변경 추적 `watch`, 환경 진단 `doctor`
 - 오프라인/air-gapped 사용을 위한 Hugging Face 캐시 구조 상호 변환
 - 로컬 다운로드를 Hugging Face URL 스킴으로 오프라인 망에 서빙
+- bash/zsh/fish 셸 자동완성(`completion`)
 - macOS, Windows, Linux의 ARM64/x86-64 정적 바이너리
 
 ## 설치 및 빌드
@@ -32,15 +44,15 @@ Created by Jioh L. Jung <ziozzang@gmail.com> — [GitHub](https://github.com/zio
 빌드한 바이너리를 받거나 Go 1.24 이상으로 빌드합니다.
 
 ```bash
-go install github.com/ziozzang/hfdownload/cmd/hfdown@latest
+go install github.com/ziozzang/hfdownload/cmd/hftools@latest
 
 make build
-./hfdown version
-./hfdown --help
+./hftools version
+./hftools --help
 ```
 
-명령별 옵션은 `hfdown help COMMAND` 또는 `hfdown COMMAND --help`로 확인합니다.
-`hfdown --version`, `hfdown -v`, `hfdown -V`도 버전 별칭으로 지원합니다.
+명령별 옵션은 `hftools help COMMAND` 또는 `hftools COMMAND --help`로 확인합니다.
+`hftools --version`, `hftools -v`, `hftools -V`도 버전 별칭으로 지원합니다.
 
 6개 플랫폼 바이너리를 모두 만들려면 다음을 실행합니다.
 
@@ -58,14 +70,14 @@ make release
 
 ```bash
 export HF_TOKEN=hf_xxx
-hfdown d owner/model
+hftools d owner/model
 ```
 
 다른 환경 변수나 직접 입력도 지원합니다.
 
 ```bash
-hfdown d --token-env MY_HF_TOKEN owner/model
-hfdown d --token hf_xxx owner/model
+hftools d --token-env MY_HF_TOKEN owner/model
+hftools d --token hf_xxx owner/model
 ```
 
 명령행 인자는 셸 기록이나 프로세스 목록에 노출될 수 있으므로 환경 변수
@@ -78,16 +90,16 @@ hfdown d --token hf_xxx owner/model
 있습니다. 기본 로컬 디렉터리 이름은 `<owner>_<repo>`입니다.
 
 ```bash
-hfdown download FluidInference/silero-vad-coreml
-hfdown dn FluidInference/silero-vad-coreml
-hfdown d https://huggingface.co/FluidInference/silero-vad-coreml
+hftools download FluidInference/silero-vad-coreml
+hftools dn FluidInference/silero-vad-coreml
+hftools d https://huggingface.co/FluidInference/silero-vad-coreml
 # -> ./FluidInference_silero-vad-coreml/
 ```
 
 저장 경로와 분할 수를 직접 지정할 수 있습니다.
 
 ```bash
-hfdown d \
+hftools d \
   --output ./models/silero-vad \
   --parts 8 \
   --multipart-threshold 64MiB \
@@ -100,8 +112,8 @@ hfdown d \
 URL을 모두 지원합니다. 기본 디렉터리 이름 역시 `<owner>_<repo>`입니다.
 
 ```bash
-hfdown dataset lhoestq/demo1
-hfdown ds https://huggingface.co/datasets/lhoestq/demo1
+hftools dataset lhoestq/demo1
+hftools ds https://huggingface.co/datasets/lhoestq/demo1
 # -> ./lhoestq_demo1/
 ```
 
@@ -111,8 +123,8 @@ hfdown ds https://huggingface.co/datasets/lhoestq/demo1
 편하게 지정하는 옵션이며 `--revision`보다 우선합니다.
 
 ```bash
-hfdown d --tag v1.2.0 owner/model
-hfdown ds --revision 0123456789abcdef owner/dataset
+hftools d --tag v1.2.0 owner/model
+hftools ds --revision 0123456789abcdef owner/dataset
 ```
 
 `--filter`는 셸 glob 형태로 받을 파일을 선택합니다. 대소문자를 구분하지
@@ -120,16 +132,16 @@ hfdown ds --revision 0123456789abcdef owner/dataset
 방식을 함께 쓸 수 있습니다.
 
 ```bash
-hfdown d \
+hftools d \
   --filter '*.json|*.parquet|*_q4_?.gguf' \
   owner/model
 
-hfdown d \
+hftools d \
   --filter '*.json' \
   --filter '*.gguf' \
   owner/model
 
-hfdown d \
+hftools d \
   --tag Q4-release \
   --filter 'weights/*_q4_?.gguf|tokenizer*.json' \
   owner/model
@@ -179,14 +191,14 @@ openai-community/gpt2
 모델 목록을 받습니다.
 
 ```bash
-hfdown batch --list models.txt
-hfdown batch --list models.txt --output-root ./models --continue-on-error
+hftools batch --list models.txt
+hftools batch --list models.txt --output-root ./models --continue-on-error
 ```
 
 같은 형식으로 데이터셋 목록을 받습니다.
 
 ```bash
-hfdown batch --type dataset --list datasets.txt --output-root ./datasets
+hftools batch --type dataset --list datasets.txt --output-root ./datasets
 ```
 
 배치 목록 전체에 `--tag`, `--filter`를 적용할 수도 있습니다. 예시는
@@ -215,8 +227,8 @@ hfdown batch --type dataset --list datasets.txt --output-root ./datasets
 ```
 
 ```bash
-hfdown batch --queue queue.json
-hfdown batch --queue queue.json --continue-on-error
+hftools batch --queue queue.json
+hftools batch --queue queue.json --continue-on-error
 ```
 
 작업별 상세 옵션은 [`queue.example.json`](queue.example.json)을 참고하십시오.
@@ -268,15 +280,15 @@ plan: 42 files • 14.8 GiB total • 35 cached (9.2 GiB) • 7 remaining (5.6 G
 기본 검증은 변경되지 않은 파일의 기존 검증 기록을 재사용합니다.
 
 ```bash
-hfdown verify --output ./FluidInference_silero-vad-coreml
+hftools verify --output ./FluidInference_silero-vad-coreml
 ```
 
 모든 파일을 강제로 다시 읽거나 관리 중인 리포를 전수 검사할 수 있습니다.
 
 ```bash
-hfdown verify --output ./FluidInference_silero-vad-coreml --force
-hfdown verify-batch --root ./models --force
-hfdown status --output ./FluidInference_silero-vad-coreml
+hftools verify --output ./FluidInference_silero-vad-coreml --force
+hftools verify-batch --root ./models --force
+hftools status --output ./FluidInference_silero-vad-coreml
 ```
 
 `verify-batch`는 기본적으로 실패 후에도 다음 디렉터리를 검사합니다. 첫 실패에
@@ -288,27 +300,27 @@ hfdown status --output ./FluidInference_silero-vad-coreml
 
 ## 오프라인 사용과 Hugging Face 캐시
 
-air-gapped 환경을 위해, 다운로드를 hfdown의 평면(flat) 구조와 `huggingface_hub`
+air-gapped 환경을 위해, 다운로드를 hftools의 평면(flat) 구조와 `huggingface_hub`
 캐시 구조 사이에서 상호 변환할 수 있습니다. 그러면 Python 라이브러리
 (`transformers`, `diffusers`, `datasets` 등)가 오프라인으로 로드할 수 있습니다.
 
 ```bash
 # 평면 다운로드 -> HF 캐시 (blobs + snapshot 심링크 + refs)
-hfdown cache-export --output ./owner_model --cache ~/.cache/huggingface/hub
+hftools cache-export --output ./owner_model --cache ~/.cache/huggingface/hub
 
 # HF 캐시 스냅샷 -> 평면 다운로드 디렉터리 (모든 파일 해시·검증)
-hfdown cache-import --repo owner/model --cache ~/.cache/huggingface/hub --output ./owner_model
+hftools cache-import --repo owner/model --cache ~/.cache/huggingface/hub --output ./owner_model
 ```
 
 - `cache-export`는 manifest를 읽어 `models--owner--model/{blobs,snapshots/<commit>,refs}`
   를 만듭니다. blob 이름은 Hugging Face etag — LFS는 SHA-256, 일반 파일은
-  git blob SHA-1 — 이며 hfdown이 이미 갖고 있어 재해싱하지 않습니다. blob은
+  git blob SHA-1 — 이며 hftools이 이미 갖고 있어 재해싱하지 않습니다. blob은
   기본적으로 원본에서 하드링크(`--copy`로 복사)하고, snapshot은 상대 심링크이며
   심링크가 불가한 환경(예: Windows)에서는 복사로 폴백합니다.
 - `cache-import`는 `refs/<revision>`에서 커밋을 확정한 뒤, 각 snapshot 파일을
   해시하여 content-addressed blob 이름과 대조하므로 손상된 전송을 잡아냅니다.
   새 manifest, `.sha256`, `.sha1sum`을 기록하여 결과가 곧바로 `verify` 가능한
-  hfdown 디렉터리가 됩니다.
+  hftools 디렉터리가 됩니다.
 - `--cache` 기본값은 `$HF_HUB_CACHE` → `$HF_HOME/hub` → `~/.cache/huggingface/hub`
   순입니다. 데이터셋은 `--type dataset`.
 
@@ -322,35 +334,114 @@ export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 
 관련 캐시 유틸리티:
 
-- `hfdown cache-list --cache DIR` — 캐시에 저장된 리포지터리 목록 표시.
-- `hfdown cache-verify --cache DIR [--repo OWNER/NAME]` — 각 blob을 재해시하여
+- `hftools cache-list --cache DIR` — 캐시에 저장된 리포지터리 목록 표시.
+- `hftools cache-verify --cache DIR [--repo OWNER/NAME]` — 각 blob을 재해시하여
   content-addressed 이름과 대조. manifest가 없어도 되므로 air-gap으로 반입한
   캐시를 그 자체로 검증할 수 있습니다.
-- `hfdown cache-import-batch --cache DIR --output-root OUT` — 캐시의 모든
+- `hftools cache-import-batch --cache DIR --output-root OUT` — 캐시의 모든
   리포지터리를 평면 디렉터리로 한 번에 가져오기. import는 재개 가능 — 이미
   올바르게 존재하는 파일은 다시 복사하지 않고 재사용합니다.
-- `hfdown cache-export --archive repo.tar` — 내보낸 리포지터리의 `.tar` 번들(및
+- `hftools cache-export --archive repo.tar` — 내보낸 리포지터리의 `.tar` 번들(및
   `repo.tar.sha256`)을 함께 생성하여 물리 매체로 전송. 캐시 루트 아래에 풀면
   바로 사용 가능합니다.
 
 ## 오프라인 망에 서빙 (미러)
 
-격리된 망에서 한 호스트를 미러로 띄우면, 다른 머신이 hfdown(또는 Hugging Face
+격리된 망에서 한 호스트를 미러로 띄우면, 다른 머신이 hftools(또는 Hugging Face
 URL 스킴을 쓰는 클라이언트)으로 그 미러에서 받을 수 있습니다:
 
 ```bash
-# 미러 호스트 (./repos 아래에 hfdown 다운로드 디렉터리들 보유):
-hfdown serve --root ./repos --addr 0.0.0.0:8080
+# 미러 호스트 (./repos 아래에 hftools 다운로드 디렉터리들 보유):
+hftools serve --root ./repos --addr 0.0.0.0:8080
 
 # 같은 망의 다른 머신:
-hfdown download --endpoint http://mirror-host:8080 owner/model
+hftools download --endpoint http://mirror-host:8080 owner/model
 ```
 
-`serve`는 `--root` 아래의 모든 hfdown 저장소(각각 `.metadata/manifest.json`을 가진
+`serve`는 `--root` 아래의 모든 hftools 저장소(각각 `.metadata/manifest.json`을 가진
 디렉터리)를 색인하고, Hub 메타데이터 API와 Range를 지원하는 `resolve` 엔드포인트를
 로컬 파일에서 응답합니다. 따라서 Range 요청·이어받기·재시도/정지 로직이 그대로
 동작합니다. 각 저장소가 받아진 리비전(브랜치/태그 이름 또는 커밋)으로 서빙하며,
-`--token-env VAR`로 `Authorization: Bearer <VAR 값>`를 요구할 수 있습니다.
+`--token-env VAR`로 `Authorization: Bearer <VAR 값>`를 요구할 수 있습니다. `/`에서
+탐색용 인덱스를, `/health`에서 상태 확인을 제공합니다.
+
+## 다운로드 없이 리포 조사
+
+```bash
+hftools info owner/model              # 요약: 파일 수·크기·LFS·gated·태그
+hftools ls --long owner/model         # 파일별 크기와 LFS 표시
+hftools ls --filter '*.safetensors' owner/model
+hftools peek owner/model model.safetensors   # 텐서 수·dtype·파라미터
+hftools diff --output ./owner_model   # 로컬 다운로드와 원격 비교
+hftools download --dry-run owner/model
+```
+
+`peek`는 HTTP Range 한 번으로 파일 헤더만 읽어, 수 GB짜리 safetensors/GGUF
+체크포인트도 몇 MB만 받아 텐서 수·dtype·shape·총 파라미터를 보고합니다. `info`,
+`ls`, `diff`, `du`, `peek`, `scan`은 모두 `--json` 출력을 지원합니다.
+
+## 단일 파일 받기
+
+```bash
+hftools get owner/model config.json                 # -> ./config.json (검증됨)
+hftools get owner/model config.json -o -            # stdout으로
+```
+
+`get`(별칭 `cat`)은 커밋을 확정하고 파일 하나만 받아 Hub 해시로 검증한 뒤 씁니다.
+
+## 체크포인트 보안 스캔
+
+```bash
+hftools scan ./owner_model            # 다운로드 디렉터리 스캔
+hftools scan pytorch_model.bin        # 파일 하나 스캔
+```
+
+`scan`은 `.bin`/`.pt`/`.pth`/`.ckpt`/`.pkl` 파일(torch zip 포함)의 pickle 옵코드
+스트림을 **언피클 없이** 정적으로 훑어, 로드 시 코드 실행을 가능케 하는 import
+참조(`os`, `subprocess`, `builtins.eval` 등)를 표시합니다. 위험(critical) import가
+있으면 0이 아닌 종료 코드를 반환합니다. 이는 보조 휴리스틱일 뿐 보증이 아니므로,
+출처가 불확실한 체크포인트는 신뢰하지 마세요.
+
+## 출처 증명 서명
+
+해시는 다운로드가 온전함을 증명하고, 서명은 누가 만들었는지를 증명합니다 —
+air gap을 건너 전달할 때 유용합니다.
+
+```bash
+# 서명자(개인키 보유):
+hftools sign --output ./owner_model --gen-key key.pem   # 공개키 출력
+# 수신자(공개키를 별도 경로로 고정):
+hftools verify-sig --output ./owner_model --pubkey <hex-또는-키파일>
+```
+
+`sign`은 저장소의 콘텐츠 주소 매니페스트 `.sha256`을 ed25519로 서명하고, 분리
+서명을 `.metadata/signature.json`과 `.sha256.sig`에 저장합니다. `--pubkey` 없이
+`verify-sig`는 서명 이후 내용이 바뀌지 않았음만 증명합니다. 출처를 증명하려면
+키를 고정하세요.
+
+## 저장·유지보수
+
+```bash
+hftools du --root ./repos --by-type          # 리포/확장자별 디스크 사용량
+hftools gc --root ./repos --tmp --orphans    # 정리(기본 dry run; --yes로 삭제)
+hftools dedup --root ./repos --yes           # 리포 간 동일 파일 하드링크
+hftools cache-gc --cache ~/.cache/huggingface/hub   # 미참조 HF 캐시 blob 제거
+hftools repair --output ./owner_model        # 심층 검증 후 불량 파일 재다운로드
+hftools watch --interval 600 owner/model     # 주기적으로 상류 변경 반영
+hftools doctor                               # 환경/네트워크/파일시스템 진단
+```
+
+`gc`, `dedup`, `cache-gc`는 기본이 dry run이며 `--yes`로만 삭제합니다. `dedup`은
+기록된 SHA-256이 같은 바이트 동일 파일을 하드링크하여(토크나이저/설정을 공유하는
+모델 패밀리 등) 한 벌만 저장합니다. 파일시스템이 다른 쌍은 건너뜁니다.
+
+## 셸 자동완성
+
+```bash
+hftools completion bash > /etc/bash_completion.d/hftools
+hftools completion zsh  > "${fpath[1]}/_hftools"
+hftools completion fish > ~/.config/fish/completions/hftools.fish
+```
 
 ## 저장 구조
 
@@ -371,7 +462,7 @@ hfdown download --endpoint http://mirror-host:8080 owner/model
 ```
 
 `tmp/`는 의도적으로 숨김 디렉터리가 아닙니다. `tmp/`, `.metadata/`,
-`.sha256`, `.sha1sum`은 `hfdown` 전용 경로이며 원격 리포에 같은 경로가
+`.sha256`, `.sha1sum`은 `hftools` 전용 경로이며 원격 리포에 같은 경로가
 있으면 충돌 방지를 위해 중단합니다. 예전 `hfdown-metadata/`, `.hfdown/`, `.metadata/tmp/`,
 `.hfdown/partials/` 구조는 자동으로 이전합니다.
 

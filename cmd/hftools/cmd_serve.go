@@ -6,9 +6,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"html"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/ziozzang/hfdownload/internal/download"
@@ -18,11 +20,11 @@ import (
 
 // serveCommand exposes local downloads over the Hugging Face Hub URL scheme so
 // another machine on an offline network can fetch them with
-// `hfdown download --endpoint http://this-host:port ...`.
+// `hftools download --endpoint http://this-host:port ...`.
 func serveCommand(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
-	root := fs.String("root", ".", "directory containing hfdown download repositories")
+	root := fs.String("root", ".", "directory containing hftools download repositories")
 	addr := fs.String("addr", "127.0.0.1:8080", "listen address")
 	tokenEnv := fs.String("token-env", "", "require this env var's value as a bearer token (default: no auth)")
 	if err := fs.Parse(args); err != nil {
@@ -41,7 +43,7 @@ func serveCommand(ctx context.Context, args []string) error {
 		return err
 	}
 	if len(m.repos) == 0 {
-		return fmt.Errorf("no hfdown repositories found under %s", rootAbs)
+		return fmt.Errorf("no hftools repositories found under %s", rootAbs)
 	}
 	token := ""
 	if *tokenEnv != "" {
@@ -74,7 +76,7 @@ type repoEntry struct {
 
 func mirrorKey(repoType, repoID string) string { return repoType + "\x00" + repoID }
 
-// newMirror scans root for hfdown repositories (directories with a
+// newMirror scans root for hftools repositories (directories with a
 // .metadata/manifest.json) and indexes them by repository type and id.
 func newMirror(root string) (*mirror, error) {
 	m := &mirror{repos: make(map[string]*repoEntry)}
@@ -114,6 +116,11 @@ func (s *mirror) handler(token string) http.Handler {
 		}
 		p := r.URL.Path
 		switch {
+		case p == "/health":
+			w.Header().Set("Content-Type", "text/plain")
+			fmt.Fprintf(w, "ok\nrepositories: %d\n", len(s.repos))
+		case p == "/" || p == "/index.html":
+			s.index(w, r)
 		case strings.HasPrefix(p, "/api/models/"):
 			s.metadata(w, r, string(hub.RepoTypeModel), strings.TrimPrefix(p, "/api/models/"))
 		case strings.HasPrefix(p, "/api/datasets/"):
@@ -146,6 +153,37 @@ type apiRepoInfo struct {
 	LastModified string       `json:"lastModified,omitempty"`
 	CreatedAt    string       `json:"createdAt,omitempty"`
 	Siblings     []apiSibling `json:"siblings"`
+}
+
+// index renders a plain browsable listing of the mirrored repositories.
+func (s *mirror) index(w http.ResponseWriter, r *http.Request) {
+	keys := make([]string, 0, len(s.repos))
+	for k := range s.repos {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprintf(w, "<!doctype html><meta charset=utf-8><title>hftools mirror</title>")
+	fmt.Fprintf(w, "<h1>hftools offline mirror</h1><p>%d repositories</p><table border=1 cellpadding=6>", len(s.repos))
+	fmt.Fprintf(w, "<tr><th>type</th><th>repository</th><th>commit</th><th>files</th><th>size</th></tr>")
+	for _, k := range keys {
+		e := s.repos[k]
+		repoType := strings.SplitN(k, "\x00", 2)[0]
+		var bytes int64
+		for _, f := range e.m.Files {
+			bytes += f.Size
+		}
+		fmt.Fprintf(w, "<tr><td>%s</td><td>%s</td><td><code>%s</code></td><td>%d</td><td>%s</td></tr>",
+			html.EscapeString(repoType), html.EscapeString(e.m.RepoID), html.EscapeString(shortCommit(e.m.CommitSHA)), len(e.m.Files), humanBytes(bytes))
+	}
+	fmt.Fprintf(w, "</table>")
+}
+
+func shortCommit(s string) string {
+	if len(s) > 12 {
+		return s[:12]
+	}
+	return s
 }
 
 func (s *mirror) metadata(w http.ResponseWriter, r *http.Request, repoType, rest string) {

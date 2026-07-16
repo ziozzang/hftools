@@ -1,5 +1,7 @@
+/hftools
 /hfdown
 /dist/
+/.hftools/
 /.metadata/
 /tmp/
 /hfdown-metadata/
@@ -7,3 +9,5 @@
 /.config/
 /go/
 /.gitconfig
+/.cache/
+/.jikji/

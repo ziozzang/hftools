@@ -187,7 +187,7 @@ func writeChecksumFile(path string, m *Manifest, algorithm string, checksum func
 	if repoType == "" {
 		repoType = "model"
 	}
-	fmt.Fprintf(&b, "# hfdown %s\n# type: %s\n# repo: %s\n# revision: %s\n# commit: %s\n", algorithm, repoType, m.RepoID, m.Revision, m.CommitSHA)
+	fmt.Fprintf(&b, "# hftools %s\n# type: %s\n# repo: %s\n# revision: %s\n# commit: %s\n", algorithm, repoType, m.RepoID, m.Revision, m.CommitSHA)
 	for _, f := range SortedFiles(m) {
 		hash := checksum(f)
 		if hash == "" || f.VerificationError != "" {

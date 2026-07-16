@@ -153,6 +153,104 @@ func VerifyStorage(storage string, bufSize int) (VerifyReport, error) {
 	return rep, nil
 }
 
+// GCReport summarizes an orphan-blob collection over an HF cache.
+type GCReport struct {
+	Repos        int      `json:"repos"`
+	Blobs        int      `json:"blobs"`
+	Orphans      int      `json:"orphans"`
+	OrphanBytes  int64    `json:"orphan_bytes"`
+	Removed      int      `json:"removed"`
+	RemovedBytes int64    `json:"removed_bytes"`
+	OrphanNames  []string `json:"orphan_names,omitempty"`
+}
+
+// GCCache scans every repository in an HF cache root for blobs that no snapshot
+// references and, when apply is true, deletes them. Snapshots point at blobs
+// through relative symlinks, so a blob whose basename is not the target of any
+// snapshot link is unreachable (typically left behind by a superseded revision).
+func GCCache(cacheRoot string, apply bool) (GCReport, error) {
+	if cacheRoot == "" {
+		cacheRoot = DefaultCacheRoot()
+	}
+	var rep GCReport
+	repos, err := ListRepos(cacheRoot)
+	if err != nil {
+		return rep, err
+	}
+	for _, r := range repos {
+		rep.Repos++
+		if err := gcStorage(r.Storage, apply, &rep); err != nil {
+			return rep, err
+		}
+	}
+	sort.Strings(rep.OrphanNames)
+	return rep, nil
+}
+
+// GCStorage runs orphan collection over a single repository storage folder.
+func GCStorage(storage string, apply bool) (GCReport, error) {
+	var rep GCReport
+	rep.Repos = 1
+	if err := gcStorage(storage, apply, &rep); err != nil {
+		return rep, err
+	}
+	sort.Strings(rep.OrphanNames)
+	return rep, nil
+}
+
+func gcStorage(storage string, apply bool, rep *GCReport) error {
+	blobsDir := filepath.Join(storage, "blobs")
+	entries, err := os.ReadDir(blobsDir)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	referenced := map[string]bool{}
+	snapRoot := filepath.Join(storage, "snapshots")
+	_ = filepath.WalkDir(snapRoot, func(p string, d os.DirEntry, walkErr error) error {
+		if walkErr != nil || d.IsDir() {
+			return nil
+		}
+		info, err := d.Info()
+		if err != nil {
+			return nil
+		}
+		if info.Mode()&os.ModeSymlink == 0 {
+			return nil
+		}
+		target, err := os.Readlink(p)
+		if err != nil {
+			return nil
+		}
+		referenced[filepath.Base(target)] = true
+		return nil
+	})
+	base := filepath.Base(storage)
+	for _, e := range entries {
+		info, err := e.Info()
+		if err != nil || !info.Mode().IsRegular() {
+			continue
+		}
+		rep.Blobs++
+		if referenced[e.Name()] {
+			continue
+		}
+		rep.Orphans++
+		rep.OrphanBytes += info.Size()
+		rep.OrphanNames = append(rep.OrphanNames, filepath.ToSlash(filepath.Join(base, "blobs", e.Name())))
+		if apply {
+			if err := os.Remove(filepath.Join(blobsDir, e.Name())); err != nil {
+				return err
+			}
+			rep.Removed++
+			rep.RemovedBytes += info.Size()
+		}
+	}
+	return nil
+}
+
 // ArchiveStorage writes a tar of the repository storage folder to out,
 // preserving the relative symlinks so it can be unpacked and used as-is.
 func ArchiveStorage(storage string, out io.Writer) error {

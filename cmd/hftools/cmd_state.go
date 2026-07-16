@@ -18,7 +18,7 @@ func stateDirectory(root string) (string, error) {
 	current := filepath.Join(root, ".metadata")
 	if st, err := os.Lstat(current); err == nil {
 		if st.Mode()&os.ModeSymlink != 0 || !st.IsDir() {
-			return "", fmt.Errorf("invalid hfdown metadata directory %s", current)
+			return "", fmt.Errorf("invalid hftools metadata directory %s", current)
 		}
 		if err := migrateStateLayout(root, current); err != nil {
 			return "", err
@@ -31,7 +31,7 @@ func stateDirectory(root string) (string, error) {
 		legacy := filepath.Join(root, name)
 		if st, err := os.Lstat(legacy); err == nil {
 			if st.Mode()&os.ModeSymlink != 0 || !st.IsDir() {
-				return "", fmt.Errorf("invalid legacy hfdown metadata directory %s", legacy)
+				return "", fmt.Errorf("invalid legacy hftools metadata directory %s", legacy)
 			}
 			if err := os.Rename(legacy, current); err != nil {
 				return "", fmt.Errorf("migrate %s to %s: %w", legacy, current, err)
