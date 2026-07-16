@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="${ROOT_DIR}/dist"
-VERSION="${VERSION:-0.6.0}"
+VERSION="${VERSION:-0.7.0}"
 
 if [[ ! "${VERSION}" =~ ^[0-9A-Za-z._-]+$ ]]; then
   echo "invalid VERSION: ${VERSION}" >&2

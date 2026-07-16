@@ -23,6 +23,7 @@ with HTTP Range requests, and verifies them against Git blob or Git LFS hashes.
 - Recursive batch verification and forced full rehashing
 - Incremental updates that fetch only remotely changed files
 - Convert to and from the Hugging Face cache layout for offline / air-gapped use
+- Serve local downloads over the Hugging Face URL scheme to an offline fleet
 - Static binaries for macOS, Windows, and Linux on ARM64 and x86-64
 
 ## Install and build
@@ -337,6 +338,26 @@ Related cache utilities:
 - `hfdown cache-export --archive repo.tar` additionally writes a `.tar` bundle
   (and `repo.tar.sha256`) of the exported repository for transfer on physical
   media; unpack it under a cache root and it is ready to use.
+
+## Serve downloads to an offline fleet
+
+On an isolated network, run one host as a mirror and let other machines download
+from it with hfdown (or any client using the Hugging Face URL scheme):
+
+```bash
+# On the mirror host (holds hfdown download directories under ./repos):
+hfdown serve --root ./repos --addr 0.0.0.0:8080
+
+# On another machine on the same network:
+hfdown download --endpoint http://mirror-host:8080 owner/model
+```
+
+`serve` indexes every hfdown repository under `--root` (each a directory with a
+`.metadata/manifest.json`) and answers the Hub metadata API and the ranged
+`resolve` download endpoint from local files, so range requests, resume, and the
+retry/stall logic all work against it unchanged. It serves the revision each
+repository was downloaded at (its branch or tag name, or the commit). Pass
+`--token-env VAR` to require `Authorization: Bearer <value-of-VAR>`.
 
 ## Repository layout
 

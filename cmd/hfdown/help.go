@@ -43,6 +43,8 @@ func helpCommand(ctx context.Context, args []string) error {
 		err = cacheListCommand([]string{"-h"})
 	case "cache-verify":
 		err = cacheVerifyCommand([]string{"-h"})
+	case "serve":
+		err = serveCommand(ctx, []string{"-h"})
 	case "version":
 		printVersion(os.Stdout)
 		return nil
@@ -76,6 +78,7 @@ Commands:
   cache-import-batch Import every repository from a Hugging Face cache
   cache-list         List repositories stored in a Hugging Face cache
   cache-verify       Rehash cached blobs against their content-addressed names
+  serve              Serve local downloads over the Hugging Face URL scheme
   version            Print version and target platform
   help               Show general or command-specific help
 
@@ -88,6 +91,7 @@ Common forms:
   hfdown verify-batch --root DIR [--force]
   hfdown cache-export --output DIR [--cache HF_CACHE]
   hfdown cache-import --repo OWNER/MODEL [--cache HF_CACHE] --output DIR
+  hfdown serve --root DIR [--addr 0.0.0.0:8080]
 
 Help and version:
   hfdown help [COMMAND]

@@ -23,6 +23,7 @@ Created by Jioh L. Jung <ziozzang@gmail.com> — [GitHub](https://github.com/zio
 - 전체 디렉터리 순회 검증과 강제 전수 재해시
 - 원격 객체 해시가 바뀐 파일만 받는 증분 업데이트
 - 오프라인/air-gapped 사용을 위한 Hugging Face 캐시 구조 상호 변환
+- 로컬 다운로드를 Hugging Face URL 스킴으로 오프라인 망에 서빙
 - macOS, Windows, Linux의 ARM64/x86-64 정적 바이너리
 
 ## 설치 및 빌드
@@ -331,6 +332,25 @@ export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 - `hfdown cache-export --archive repo.tar` — 내보낸 리포지터리의 `.tar` 번들(및
   `repo.tar.sha256`)을 함께 생성하여 물리 매체로 전송. 캐시 루트 아래에 풀면
   바로 사용 가능합니다.
+
+## 오프라인 망에 서빙 (미러)
+
+격리된 망에서 한 호스트를 미러로 띄우면, 다른 머신이 hfdown(또는 Hugging Face
+URL 스킴을 쓰는 클라이언트)으로 그 미러에서 받을 수 있습니다:
+
+```bash
+# 미러 호스트 (./repos 아래에 hfdown 다운로드 디렉터리들 보유):
+hfdown serve --root ./repos --addr 0.0.0.0:8080
+
+# 같은 망의 다른 머신:
+hfdown download --endpoint http://mirror-host:8080 owner/model
+```
+
+`serve`는 `--root` 아래의 모든 hfdown 저장소(각각 `.metadata/manifest.json`을 가진
+디렉터리)를 색인하고, Hub 메타데이터 API와 Range를 지원하는 `resolve` 엔드포인트를
+로컬 파일에서 응답합니다. 따라서 Range 요청·이어받기·재시도/정지 로직이 그대로
+동작합니다. 각 저장소가 받아진 리비전(브랜치/태그 이름 또는 커밋)으로 서빙하며,
+`--token-env VAR`로 `Authorization: Bearer <VAR 값>`를 요구할 수 있습니다.
 
 ## 저장 구조
 
