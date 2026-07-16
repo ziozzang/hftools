@@ -15,12 +15,39 @@ import (
 	"github.com/ziozzang/hftools/internal/state"
 )
 
-// resolveToken returns the explicit token or the value of the configured env var.
+// resolveToken returns the first available token: the explicit --token, the
+// configured env var, then the huggingface_hub token file — so a token created
+// by `huggingface-cli login` is picked up automatically.
 func resolveToken(cfg settings) string {
 	if cfg.Token != "" {
 		return cfg.Token
 	}
-	return os.Getenv(cfg.TokenEnv)
+	if v := os.Getenv(cfg.TokenEnv); v != "" {
+		return v
+	}
+	return hfTokenFromFile()
+}
+
+// hfTokenFromFile reads the token saved by huggingface_hub, honoring
+// HF_TOKEN_PATH and HF_HOME (default ~/.cache/huggingface/token).
+func hfTokenFromFile() string {
+	path := os.Getenv("HF_TOKEN_PATH")
+	if path == "" {
+		home := os.Getenv("HF_HOME")
+		if home == "" {
+			uh, err := os.UserHomeDir()
+			if err != nil {
+				return ""
+			}
+			home = filepath.Join(uh, ".cache", "huggingface")
+		}
+		path = filepath.Join(home, "token")
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(b))
 }
 
 // newHubClient builds a Hub client from settings, wiring the retry policy.
@@ -35,7 +62,7 @@ func newHubClient(cfg settings) *hub.Client {
 // remoteFlags registers the flags shared by read-only remote commands and
 // returns the --type flag pointer.
 func remoteFlags(fs *flag.FlagSet, cfg *settings) *string {
-	typeFlag := fs.String("type", "model", "repository type: model or dataset")
+	typeFlag := fs.String("type", "model", "repository type: model, dataset, or space")
 	fs.StringVar(&cfg.Revision, "revision", cfg.Revision, "branch, tag, or commit")
 	fs.StringVar(&cfg.Endpoint, "endpoint", cfg.Endpoint, "Hugging Face Hub endpoint")
 	fs.StringVar(&cfg.TokenEnv, "token-env", cfg.TokenEnv, "environment variable containing the access token")
@@ -51,8 +78,10 @@ func repoTypeFrom(s string) (hub.RepoType, error) {
 		return hub.RepoTypeModel, nil
 	case "dataset":
 		return hub.RepoTypeDataset, nil
+	case "space":
+		return hub.RepoTypeSpace, nil
 	default:
-		return "", fmt.Errorf("invalid --type %q (want model or dataset)", s)
+		return "", fmt.Errorf("invalid --type %q (want model, dataset, or space)", s)
 	}
 }
 

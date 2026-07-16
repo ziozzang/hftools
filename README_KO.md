@@ -26,8 +26,11 @@ Created by Jioh L. Jung <ziozzang@gmail.com> — [GitHub](https://github.com/zio
 - 단순 텍스트 목록과 작업별 설정이 가능한 JSON 큐
 - 전체 디렉터리 순회 검증과 강제 전수 재해시
 - 원격 객체 해시가 바뀐 파일만 받는 증분 업데이트
+- 모델·데이터셋에 더해 **Spaces** 지원(`--type space` / `space` 명령)
 - 다운로드 없이 원격 조사: `info`, `ls`, `diff`, `peek`(safetensors/GGUF 헤더를
   Range 한 번으로 읽음)
+- Hub 탐색: `search`(모델/데이터셋/스페이스), `refs`(브랜치/태그), `whoami`
+- 기존 `huggingface-cli login` 토큰 자동 사용
 - 단일 파일 받기 `get`(파일 또는 stdout), 모든 다운로드의 `--dry-run`
 - pickle/torch 체크포인트의 위험 import 스캔(`scan`)
 - 콘텐츠 매니페스트에 대한 ed25519 출처 서명(`sign` / `verify-sig`)
@@ -112,6 +115,11 @@ hftools d --token hf_xxx owner/model
 명령행 인자는 셸 기록이나 프로세스 목록에 노출될 수 있으므로 환경 변수
 사용을 권장합니다. 토큰은 메타데이터, 체크섬, 설정 파일, 로그에 기록하지
 않습니다.
+
+`--token`도 토큰 환경 변수도 없으면, `huggingface_hub` 토큰 파일(`$HF_TOKEN_PATH`,
+또는 `$HF_HOME/token`, 기본 `~/.cache/huggingface/token`)을 폴백으로 읽습니다.
+따라서 `huggingface-cli login`으로 만든 토큰을 별도 설정 없이 그대로 씁니다.
+해석된 토큰이 누구로 인증되는지는 `hftools whoami`로 확인합니다.
 
 ## 모델 다운로드
 
@@ -394,20 +402,34 @@ hftools download --endpoint http://mirror-host:8080 owner/model
 `--token-env VAR`로 `Authorization: Bearer <VAR 값>`를 요구할 수 있습니다. `/`에서
 탐색용 인덱스를, `/health`에서 상태 확인을 제공합니다.
 
-## 다운로드 없이 리포 조사
+## Hub 조사·탐색
 
 ```bash
 hftools info owner/model              # 요약: 파일 수·크기·LFS·gated·태그
 hftools ls --long owner/model         # 파일별 크기와 LFS 표시
 hftools ls --filter '*.safetensors' owner/model
+hftools refs owner/model              # 브랜치와 태그
 hftools peek owner/model model.safetensors   # 텐서 수·dtype·파라미터
 hftools diff --output ./owner_model   # 로컬 다운로드와 원격 비교
 hftools download --dry-run owner/model
+
+hftools search --limit 10 --filter text-generation llama   # 모델 검색
+hftools search --type dataset squad                        # 데이터셋 검색
+hftools whoami                        # 토큰이 누구로 인증되는지
 ```
 
 `peek`는 HTTP Range 한 번으로 파일 헤더만 읽어, 수 GB짜리 safetensors/GGUF
 체크포인트도 몇 MB만 받아 텐서 수·dtype·shape·총 파라미터를 보고합니다. `info`,
-`ls`, `diff`, `du`, `peek`, `scan`은 모두 `--json` 출력을 지원합니다.
+`ls`, `refs`, `diff`, `du`, `peek`, `search`, `scan`은 모두 `--json` 출력을
+지원합니다.
+
+Spaces는 리포 타입이 적용되는 모든 곳에서 지원합니다 — 조사 명령에 `--type space`를
+주거나 `space` 명령으로 받습니다.
+
+```bash
+hftools space gradio/hello_world
+hftools info --type space gradio/hello_world
+```
 
 ## 단일 파일 받기
 

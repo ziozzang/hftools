@@ -12,7 +12,7 @@ import (
 	"syscall"
 )
 
-const version = "0.9.2"
+const version = "0.10.0"
 
 type settings struct {
 	Endpoint              string   `json:"endpoint"`
@@ -89,6 +89,8 @@ func run(ctx context.Context, args []string) error {
 		return downloadCommand(ctx, args[1:])
 	case "dataset", "ds":
 		return datasetCommand(ctx, args[1:])
+	case "space", "sp":
+		return spaceCommand(ctx, args[1:])
 	case "batch":
 		return batchCommand(ctx, args[1:])
 	case "verify":
@@ -103,6 +105,14 @@ func run(ctx context.Context, args []string) error {
 		return lsCommand(ctx, args[1:])
 	case "diff":
 		return diffCommand(ctx, args[1:])
+	case "refs":
+		return refsCommand(ctx, args[1:])
+	case "search":
+		return searchCommand(ctx, args[1:])
+	case "whoami":
+		return whoamiCommand(ctx, args[1:])
+	case "cache-scan":
+		return cacheScanCommand(args[1:])
 	case "du":
 		return duCommand(args[1:])
 	case "get", "cat":

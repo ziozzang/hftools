@@ -24,6 +24,10 @@ func datasetCommand(ctx context.Context, args []string) error {
 	return repositoryCommand(ctx, args, hub.RepoTypeDataset, "dataset")
 }
 
+func spaceCommand(ctx context.Context, args []string) error {
+	return repositoryCommand(ctx, args, hub.RepoTypeSpace, "space")
+}
+
 func repositoryCommand(ctx context.Context, args []string, repoType hub.RepoType, commandName string) error {
 	cfg, configPath, err := loadSettings(args)
 	if err != nil {

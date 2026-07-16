@@ -27,8 +27,12 @@ around the same integrity-first, offline-friendly core.
 - Plain-text lists and per-job JSON queues
 - Recursive batch verification and forced full rehashing
 - Incremental updates that fetch only remotely changed files
+- Models, datasets, and **Spaces** (`--type space` / the `space` command)
 - Inspect remote repositories without downloading: `info`, `ls`, `diff`, and
   `peek` (read a safetensors/GGUF header via a single Range request)
+- Discover on the Hub: `search` models/datasets/spaces, `refs` (branches/tags),
+  and `whoami`
+- Reuse an existing `huggingface-cli login` token automatically
 - `get` a single file (to a path or stdout); `dry-run` any download
 - Scan pickle/torch checkpoints for unsafe imports (`scan`)
 - ed25519 provenance signatures over the content manifest (`sign` / `verify-sig`)
@@ -116,6 +120,12 @@ hftools d --token hf_xxx owner/model
 The environment form is safer because command-line arguments can appear in
 shell history or process listings. Tokens are never stored in metadata,
 checksums, configuration, or logs.
+
+If neither `--token` nor the token env var is set, hftools falls back to the
+`huggingface_hub` token file (`$HF_TOKEN_PATH`, or `$HF_HOME/token`, default
+`~/.cache/huggingface/token`), so a token created by `huggingface-cli login`
+works without any extra configuration. `hftools whoami` shows who the resolved
+token authenticates as.
 
 ## Download a model
 
@@ -404,21 +414,35 @@ repository was downloaded at (its branch or tag name, or the commit). Pass
 `--token-env VAR` to require `Authorization: Bearer <value-of-VAR>`. A browsable
 index is served at `/` and a liveness probe at `/health`.
 
-## Inspect a repository without downloading
+## Inspect and discover on the Hub
 
 ```bash
 hftools info owner/model              # summary: files, size, LFS, gated, tags
 hftools ls --long owner/model         # per-file sizes and LFS markers
 hftools ls --filter '*.safetensors' owner/model
+hftools refs owner/model              # branches and tags
 hftools peek owner/model model.safetensors   # tensor count, dtypes, params
 hftools diff --output ./owner_model   # compare a local download to the remote
 hftools download --dry-run owner/model
+
+hftools search --limit 10 --filter text-generation llama   # search models
+hftools search --type dataset squad                        # search datasets
+hftools whoami                        # who your token authenticates as
 ```
 
 `peek` reads only the file header via a single HTTP Range request, so it reports
 the tensor count, dtypes, shapes, and parameter total of a multi-gigabyte
 safetensors or GGUF checkpoint by transferring a few megabytes. `info`, `ls`,
-`diff`, `du`, `peek`, and `scan` all accept `--json` for scripting.
+`refs`, `diff`, `du`, `peek`, `search`, and `scan` all accept `--json` for
+scripting.
+
+Spaces are supported everywhere a repository type applies — pass `--type space`
+to the inspection commands, or use the `space` command to download one:
+
+```bash
+hftools space gradio/hello_world
+hftools info --type space gradio/hello_world
+```
 
 ## Fetch a single file
 

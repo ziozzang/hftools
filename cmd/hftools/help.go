@@ -25,6 +25,16 @@ func helpCommand(ctx context.Context, args []string) error {
 		err = repositoryCommand(ctx, []string{"-h"}, hub.RepoTypeModel, "download")
 	case "dataset", "ds":
 		err = repositoryCommand(ctx, []string{"-h"}, hub.RepoTypeDataset, "dataset")
+	case "space", "sp":
+		err = repositoryCommand(ctx, []string{"-h"}, hub.RepoTypeSpace, "space")
+	case "refs":
+		err = refsCommand(ctx, []string{"-h"})
+	case "search":
+		err = searchCommand(ctx, []string{"-h"})
+	case "whoami":
+		err = whoamiCommand(ctx, []string{"-h"})
+	case "cache-scan":
+		err = cacheScanCommand([]string{"-h"})
 	case "batch":
 		err = batchCommand(ctx, []string{"-h"})
 	case "verify":
@@ -103,16 +113,20 @@ Usage:
 Download & sync:
   download, dn, d    Download or update a model repository
   dataset, ds        Download or update a dataset repository
+  space, sp          Download or update a Space repository
   batch              Process a plain-text list or JSON queue
   get, cat           Download a single file (to a path or stdout)
   watch              Periodically re-sync a repository
   repair             Deep-verify and re-fetch missing or corrupt files
 
-Inspect (no download):
+Inspect & discover (no download):
   info, show         Summarize a remote repository
   ls                 List a remote repository's files
+  refs               List a repository's branches and tags
+  search             Search the Hub for models/datasets/spaces
   peek               Read a remote safetensors/GGUF header via a Range request
   diff               Compare a local download against the remote revision
+  whoami             Show the identity your token authenticates as
 
 Verify & trust:
   verify             Verify one downloaded repository
@@ -134,6 +148,7 @@ Hugging Face cache interop:
   cache-import       Convert a Hugging Face cache snapshot into a flat directory
   cache-import-batch Import every repository from a Hugging Face cache
   cache-list         List repositories stored in a Hugging Face cache
+  cache-scan         Summarize disk usage of a Hugging Face cache
   cache-verify       Rehash cached blobs against their content-addressed names
 
 Serve & shell:

@@ -30,6 +30,7 @@ type RepoType string
 const (
 	RepoTypeModel   RepoType = "model"
 	RepoTypeDataset RepoType = "dataset"
+	RepoTypeSpace   RepoType = "space"
 )
 
 func (t RepoType) normalized() RepoType {
@@ -41,10 +42,34 @@ func (t RepoType) normalized() RepoType {
 
 func (t RepoType) Validate() error {
 	switch t.normalized() {
-	case RepoTypeModel, RepoTypeDataset:
+	case RepoTypeModel, RepoTypeDataset, RepoTypeSpace:
 		return nil
 	default:
 		return fmt.Errorf("unsupported repository type %q", t)
+	}
+}
+
+// Collection is the API path segment for the repository type (models/datasets/spaces).
+func (t RepoType) Collection() string {
+	switch t.normalized() {
+	case RepoTypeDataset:
+		return "datasets"
+	case RepoTypeSpace:
+		return "spaces"
+	default:
+		return "models"
+	}
+}
+
+// pathPrefix is the resolve-URL prefix for the repository type.
+func (t RepoType) pathPrefix() string {
+	switch t.normalized() {
+	case RepoTypeDataset:
+		return "/datasets"
+	case RepoTypeSpace:
+		return "/spaces"
+	default:
+		return ""
 	}
 }
 
@@ -94,11 +119,7 @@ func (c *Client) RepoInfo(ctx context.Context, repoType RepoType, repoID, revisi
 	if err := repoType.Validate(); err != nil {
 		return nil, err
 	}
-	collection := "models"
-	if repoType.normalized() == RepoTypeDataset {
-		collection = "datasets"
-	}
-	u := c.Endpoint + "/api/" + collection + "/" + escapeRepo(repoID) + "/revision/" + url.PathEscape(revision) + "?blobs=true"
+	u := c.Endpoint + "/api/" + repoType.Collection() + "/" + escapeRepo(repoID) + "/revision/" + url.PathEscape(revision) + "?blobs=true"
 
 	unlimited := c.Retries < 0
 	minWait, maxWait := RetryWaits(c.RetryMinWait, c.RetryMaxWait)
@@ -175,11 +196,7 @@ func (c *Client) DownloadURL(repoType RepoType, repoID, commitSHA, filePath stri
 	for i := range segments {
 		segments[i] = url.PathEscape(segments[i])
 	}
-	prefix := ""
-	if repoType.normalized() == RepoTypeDataset {
-		prefix = "/datasets"
-	}
-	return c.Endpoint + prefix + "/" + escapeRepo(repoID) + "/resolve/" + url.PathEscape(commitSHA) + "/" + strings.Join(segments, "/") + "?download=true"
+	return c.Endpoint + repoType.pathPrefix() + "/" + escapeRepo(repoID) + "/resolve/" + url.PathEscape(commitSHA) + "/" + strings.Join(segments, "/") + "?download=true"
 }
 
 func (c *Client) NewDownloadRequest(ctx context.Context, rawURL string, start, end int64) (*http.Request, error) {

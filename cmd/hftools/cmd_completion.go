@@ -10,10 +10,11 @@ import (
 // completionCommands is the list of top-level subcommands offered by shell
 // completion. Keep it aligned with run()'s dispatch.
 var completionCommands = []string{
-	"download", "dataset", "batch", "verify", "verify-batch", "status",
-	"info", "ls", "diff", "du", "get", "peek", "scan", "sign", "verify-sig",
+	"download", "dataset", "space", "batch", "verify", "verify-batch", "status",
+	"info", "ls", "refs", "search", "whoami", "diff", "du", "get", "peek",
+	"scan", "sign", "verify-sig",
 	"gc", "cache-gc", "dedup", "repair", "doctor", "watch",
-	"cache-export", "cache-import", "cache-import-batch", "cache-list", "cache-verify",
+	"cache-export", "cache-import", "cache-import-batch", "cache-list", "cache-scan", "cache-verify",
 	"serve", "completion", "update", "version", "help",
 }
 
