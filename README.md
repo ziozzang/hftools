@@ -32,6 +32,8 @@ around the same integrity-first, offline-friendly core.
   `peek` (read a safetensors/GGUF header via a single Range request)
 - Discover on the Hub: `search` models/datasets/spaces, `refs` (branches/tags),
   and `whoami`
+- Publish to the Hub with a write token: `upload` files/folders (Git LFS aware,
+  one commit), `repo` create/delete, and `tag` create/list/delete
 - Reuse an existing `huggingface-cli login` token automatically
 - `get` a single file (to a path or stdout); `dry-run` any download
 - Scan pickle/torch checkpoints for unsafe imports (`scan`)
@@ -453,6 +455,41 @@ hftools get owner/model config.json -o -            # to stdout
 
 `get` (alias `cat`) resolves the commit, downloads one file, and verifies it
 against the Hub hash before writing it.
+
+## Publish to the Hub
+
+Writing to the Hub needs a token with **write** access (create one at
+<https://huggingface.co/settings/tokens>, then `huggingface-cli login` or set
+`$HF_TOKEN`). Flags must precede the positional arguments.
+
+```bash
+# Upload a folder (recursively) in a single commit; large files go through Git LFS.
+hftools upload --message "add weights" owner/model ./local_dir
+
+# Upload one file, optionally renaming it in the repository.
+hftools upload --path-in-repo config.json owner/model ./config.json
+
+# Preview what would be sent without contacting the Hub.
+hftools upload --dry-run owner/model ./local_dir
+
+# Create the repository first if it does not exist yet.
+hftools upload --create --private owner/model ./local_dir
+
+# Manage repositories and tags.
+hftools repo create --private owner/model
+hftools repo delete owner/model --yes           # permanent; --yes is required
+hftools tag create --message "release" owner/model v1.0
+hftools tag list owner/model
+hftools tag delete owner/model v1.0 --yes
+```
+
+`upload` classifies each file with the Hub's preupload endpoint, streams LFS
+objects (basic or multipart) with their SHA-256, and finalizes everything in one
+NDJSON commit. Small files are embedded inline; `.git` and hftools metadata
+directories are skipped. A single directory argument uploads its contents under
+`--path-in-repo`; a single file uploads to `--path-in-repo` (or its basename);
+multiple file arguments each land at `--path-in-repo/<basename>`. Destructive
+operations (`repo delete`, `tag delete`) require `--yes`.
 
 ## Scan checkpoints for unsafe code
 

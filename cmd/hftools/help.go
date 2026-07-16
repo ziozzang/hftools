@@ -77,6 +77,12 @@ func helpCommand(ctx context.Context, args []string) error {
 		err = completionCommand([]string{"-h"})
 	case "update", "self-update":
 		err = updateCommand(ctx, []string{"-h"})
+	case "upload", "up":
+		err = uploadCommand(ctx, []string{"-h"})
+	case "repo":
+		return repoCommand(ctx, []string{"help"})
+	case "tag":
+		return tagCommand(ctx, []string{"help"})
 	case "cache-export":
 		err = cacheExportCommand([]string{"-h"})
 	case "cache-import":
@@ -151,6 +157,11 @@ Hugging Face cache interop:
   cache-scan         Summarize disk usage of a Hugging Face cache
   cache-verify       Rehash cached blobs against their content-addressed names
 
+Publish (write, needs a write token):
+  upload, up         Upload files or a folder to a repository in one commit
+  repo               Create or delete a repository (repo create|delete)
+  tag                Create, list, or delete git tags (tag create|list|delete)
+
 Serve & shell:
   serve              Serve local downloads over the Hugging Face URL scheme
   completion         Emit a bash/zsh/fish completion script
@@ -168,6 +179,8 @@ Common forms:
   hftools verify --output DIR [--force]
   hftools dedup --root DIR --yes
   hftools serve --root DIR [--addr 0.0.0.0:8080]
+  hftools upload --message "add weights" OWNER/MODEL ./dir
+  hftools repo create --private OWNER/MODEL
 
 Help and version:
   hftools help [COMMAND]

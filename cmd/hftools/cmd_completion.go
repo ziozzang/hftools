@@ -15,6 +15,7 @@ var completionCommands = []string{
 	"scan", "sign", "verify-sig",
 	"gc", "cache-gc", "dedup", "repair", "doctor", "watch",
 	"cache-export", "cache-import", "cache-import-batch", "cache-list", "cache-scan", "cache-verify",
+	"upload", "repo", "tag",
 	"serve", "completion", "update", "version", "help",
 }
 

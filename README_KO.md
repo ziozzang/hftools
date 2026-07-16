@@ -30,6 +30,8 @@ Created by Jioh L. Jung <ziozzang@gmail.com> — [GitHub](https://github.com/zio
 - 다운로드 없이 원격 조사: `info`, `ls`, `diff`, `peek`(safetensors/GGUF 헤더를
   Range 한 번으로 읽음)
 - Hub 탐색: `search`(모델/데이터셋/스페이스), `refs`(브랜치/태그), `whoami`
+- 쓰기 토큰으로 Hub에 게시: 파일/폴더 `upload`(Git LFS 인식, 단일 커밋),
+  `repo` 생성/삭제, `tag` 생성/목록/삭제
 - 기존 `huggingface-cli login` 토큰 자동 사용
 - 단일 파일 받기 `get`(파일 또는 stdout), 모든 다운로드의 `--dry-run`
 - pickle/torch 체크포인트의 위험 import 스캔(`scan`)
@@ -439,6 +441,41 @@ hftools get owner/model config.json -o -            # stdout으로
 ```
 
 `get`(별칭 `cat`)은 커밋을 확정하고 파일 하나만 받아 Hub 해시로 검증한 뒤 씁니다.
+
+## Hub에 게시(업로드)
+
+Hub 쓰기에는 **write** 권한 토큰이 필요합니다(<https://huggingface.co/settings/tokens>
+에서 발급 후 `huggingface-cli login` 또는 `$HF_TOKEN` 설정). 플래그는 위치 인자보다
+앞에 와야 합니다.
+
+```bash
+# 폴더를 재귀적으로 한 번의 커밋으로 업로드; 큰 파일은 Git LFS로 전송.
+hftools upload --message "add weights" owner/model ./local_dir
+
+# 파일 하나 업로드(리포 내 경로/이름 변경 가능).
+hftools upload --path-in-repo config.json owner/model ./config.json
+
+# Hub에 연결하지 않고 무엇이 올라갈지 미리보기.
+hftools upload --dry-run owner/model ./local_dir
+
+# 리포가 없으면 먼저 생성.
+hftools upload --create --private owner/model ./local_dir
+
+# 리포와 태그 관리.
+hftools repo create --private owner/model
+hftools repo delete owner/model --yes           # 영구 삭제; --yes 필수
+hftools tag create --message "release" owner/model v1.0
+hftools tag list owner/model
+hftools tag delete owner/model v1.0 --yes
+```
+
+`upload`은 각 파일을 Hub의 preupload 엔드포인트로 분류하고, LFS 객체를
+SHA-256과 함께(basic 또는 multipart) 전송한 뒤, 전부를 하나의 NDJSON 커밋으로
+확정합니다. 작은 파일은 인라인으로 포함되며 `.git`과 hftools 메타데이터 디렉터리는
+제외됩니다. 디렉터리 인자 하나는 그 내용을 `--path-in-repo` 아래로 올리고, 파일
+하나는 `--path-in-repo`(없으면 파일명)로, 여러 파일 인자는 각각
+`--path-in-repo/<파일명>`으로 올립니다. 파괴적 작업(`repo delete`, `tag delete`)은
+`--yes`가 필요합니다.
 
 ## 체크포인트 보안 스캔
 
