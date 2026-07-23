@@ -12,7 +12,7 @@ import (
 	"syscall"
 )
 
-const version = "0.14.0"
+const version = "0.14.1"
 
 type settings struct {
 	Endpoint              string   `json:"endpoint"`
