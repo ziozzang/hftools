@@ -66,6 +66,33 @@ func ParsePrivateKeyPEM(data []byte) (ed25519.PrivateKey, error) {
 // PublicKeyHex renders a public key as hex.
 func PublicKeyHex(pub ed25519.PublicKey) string { return hex.EncodeToString(pub) }
 
+// MarshalPublicKeyPEM encodes a public key as a PKIX PEM block, the portable
+// form recipients pin out-of-band.
+func MarshalPublicKeyPEM(pub ed25519.PublicKey) ([]byte, error) {
+	der, err := x509.MarshalPKIXPublicKey(pub)
+	if err != nil {
+		return nil, err
+	}
+	return pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der}), nil
+}
+
+// Fingerprint is the SHA-256 of the raw 32-byte public key, hex-encoded. It is
+// the stable, human-comparable identifier used to pin trust in a signer.
+func Fingerprint(pub ed25519.PublicKey) string {
+	sum := sha256.Sum256(pub)
+	return hex.EncodeToString(sum[:])
+}
+
+// ShortFingerprint returns the first 16 hex chars of the fingerprint for compact
+// display; the full fingerprint remains the value to compare for trust.
+func ShortFingerprint(pub ed25519.PublicKey) string {
+	fp := Fingerprint(pub)
+	if len(fp) > 16 {
+		return fp[:16]
+	}
+	return fp
+}
+
 // ParsePublicKey accepts a hex-encoded key or a PEM/PKIX block.
 func ParsePublicKey(s string) (ed25519.PublicKey, error) {
 	s = strings.TrimSpace(s)

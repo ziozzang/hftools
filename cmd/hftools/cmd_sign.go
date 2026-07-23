@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/ziozzang/hftools/internal/identity"
 	"github.com/ziozzang/hftools/internal/sign"
 	"github.com/ziozzang/hftools/internal/state"
 )
@@ -22,9 +23,9 @@ func signCommand(args []string) error {
 	fs := flag.NewFlagSet("sign", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	output := fs.String("output", ".", "downloaded repository directory")
-	keyPath := fs.String("key", "", "ed25519 private key PEM to sign with")
+	keyPath := fs.String("key", "", "ed25519 private key PEM to sign with (default: ~/.hftools identity)")
 	genKey := fs.String("gen-key", "", "generate a new private key, write it to this path, and sign with it")
-	signer := fs.String("signer", "", "optional signer label recorded in the signature")
+	signer := fs.String("signer", "", "optional signer label recorded in the signature (default: config.yaml signer)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -71,7 +72,33 @@ func signCommand(args []string) error {
 			return err
 		}
 	default:
-		return fmt.Errorf("provide --key PRIV.pem or --gen-key OUT.pem")
+		// No explicit key: use (and create on first run) the ~/.hftools identity.
+		cfg, _, err := identity.LoadConfig()
+		if err != nil {
+			return err
+		}
+		var created bool
+		var idKeyPath string
+		priv, idKeyPath, created, err = identity.EnsureKey(cfg)
+		if err != nil {
+			return err
+		}
+		if created {
+			// Materialize ~/.hftools/config.yaml on first use, recording the
+			// signer label so later signs default to it.
+			if *signer != "" {
+				cfg.Signer = *signer
+			}
+			if err := cfg.Save(); err != nil {
+				return err
+			}
+			pub := priv.Public().(ed25519.PublicKey)
+			fmt.Fprintf(os.Stderr, "created signing identity at %s\npublic key: %s\nfingerprint: %s\n",
+				idKeyPath, sign.PublicKeyHex(pub), sign.Fingerprint(pub))
+		}
+		if *signer == "" {
+			*signer = cfg.Signer
+		}
 	}
 
 	rec := sign.Sign(payload, priv, *signer, time.Now().UTC())
@@ -83,8 +110,9 @@ func signCommand(args []string) error {
 	if err := state.SaveJSONAtomic(filepath.Join(root, signatureFile), rec); err != nil {
 		return err
 	}
-	fmt.Printf("signed %s\npublic key: %s\ndistribute the public key out-of-band; verify with: hftools verify-sig --pubkey %s\n",
-		root, rec.PublicKey, rec.PublicKey)
+	pub := priv.Public().(ed25519.PublicKey)
+	fmt.Printf("signed %s\npublic key: %s\nfingerprint: %s\n", root, rec.PublicKey, sign.Fingerprint(pub))
+	fmt.Printf("distribute the public key out-of-band; verify with: hftools verify-sig --output <dir> --pubkey %s\n", rec.PublicKey)
 	return nil
 }
 
@@ -110,7 +138,7 @@ func verifySigCommand(args []string) error {
 	fs := flag.NewFlagSet("verify-sig", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	output := fs.String("output", ".", "downloaded repository directory")
-	pubkey := fs.String("pubkey", "", "pinned public key (hex, PEM, or a file path) to prove provenance")
+	pubkey := fs.String("pubkey", "", "pinned public key to prove provenance: a trusted name, hex, PEM, or file path")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -130,27 +158,40 @@ func verifySigCommand(args []string) error {
 	if err != nil {
 		return err
 	}
+	recPub, err := sign.ParsePublicKey(rec.PublicKey)
+	if err != nil {
+		return fmt.Errorf("signature public key: %w", err)
+	}
+	cfg, _, err := identity.LoadConfig()
+	if err != nil {
+		return err
+	}
+	// Determine the pinned key: an explicit --pubkey (name, file, hex, or PEM),
+	// or an automatic match against a key the operator already trusts.
 	var pinned ed25519.PublicKey
+	var trustLabel string
 	if *pubkey != "" {
-		data := *pubkey
-		if b, err := os.ReadFile(*pubkey); err == nil {
-			data = string(b)
-		}
-		pinned, err = sign.ParsePublicKey(data)
+		pinned, trustLabel, err = cfg.ResolvePinned(*pubkey)
 		if err != nil {
 			return err
 		}
+	} else if name := cfg.LookupTrustedName(recPub); name != "" {
+		pinned, trustLabel = recPub, name
 	}
 	if err := rec.Verify(payload, pinned); err != nil {
 		return err
 	}
-	fmt.Printf("signature OK\nsigned by: %s\n", rec.PublicKey)
+	fmt.Printf("signature OK\nsigned by: %s\nfingerprint: %s\n", rec.PublicKey, sign.Fingerprint(recPub))
+	if trustLabel != "" {
+		fmt.Printf("trusted key: %s\n", trustLabel)
+	}
 	if rec.Signer != "" {
 		fmt.Printf("signer: %s\n", rec.Signer)
 	}
 	fmt.Printf("signed at: %s\n", rec.SignedAt.Format(time.RFC3339))
 	if pinned == nil {
-		fmt.Fprintln(os.Stderr, "note: no --pubkey pinned; this proves the content is unchanged since signing, not who signed it")
+		fmt.Fprintln(os.Stderr, "note: key not pinned or trusted — this proves the content is unchanged since signing, not who signed it")
+		fmt.Fprintf(os.Stderr, "to trust this signer for future verifications: hftools key trust <name> %s\n", rec.PublicKey)
 	}
 	return nil
 }

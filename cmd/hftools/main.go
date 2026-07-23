@@ -12,7 +12,7 @@ import (
 	"syscall"
 )
 
-const version = "0.11.0"
+const version = "0.12.0"
 
 type settings struct {
 	Endpoint              string   `json:"endpoint"`
@@ -125,6 +125,8 @@ func run(ctx context.Context, args []string) error {
 		return signCommand(args[1:])
 	case "verify-sig":
 		return verifySigCommand(args[1:])
+	case "key":
+		return keyCommand(args[1:])
 	case "gc":
 		return gcCommand(args[1:])
 	case "cache-gc":

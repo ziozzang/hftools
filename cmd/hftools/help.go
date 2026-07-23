@@ -61,6 +61,9 @@ func helpCommand(ctx context.Context, args []string) error {
 		err = signCommand([]string{"-h"})
 	case "verify-sig":
 		err = verifySigCommand([]string{"-h"})
+	case "key":
+		keyUsage(os.Stdout)
+		return nil
 	case "gc":
 		err = gcCommand([]string{"-h"})
 	case "cache-gc":
@@ -141,6 +144,7 @@ Verify & trust:
   scan               Scan pickle/torch files for unsafe imports
   sign               Sign a repository's content manifest (ed25519)
   verify-sig         Verify a repository signature
+  key                Manage the ~/.hftools signing identity and trusted keys
 
 Storage & maintenance:
   du                 Report disk usage of local downloads

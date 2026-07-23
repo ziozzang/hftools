@@ -37,7 +37,7 @@ around the same integrity-first, offline-friendly core.
 - Reuse an existing `huggingface-cli login` token automatically
 - `get` a single file (to a path or stdout); `dry-run` any download
 - Scan pickle/torch checkpoints for unsafe imports (`scan`)
-- ed25519 provenance signatures over the content manifest (`sign` / `verify-sig`)
+- ed25519 provenance signatures over the content manifest (`sign` / `verify-sig`), with a `~/.hftools` signing identity and a trusted-key registry (`key`)
 - Storage tools: `du`, `gc`, cross-repo hardlink `dedup`, and HF-cache `cache-gc`
 - `repair` corrupt downloads, `watch` for upstream changes, `doctor` the environment
 - Convert to and from the Hugging Face cache layout for offline / air-gapped use
@@ -510,17 +510,36 @@ untrusted.
 Hashing proves a download is intact; a signature proves who produced it — useful
 when a repository is carried across an air gap.
 
+hftools keeps a per-user signing identity under `~/.hftools` (override with
+`HFTOOLS_HOME`): an ed25519 private key (`signing.key`, mode 0600), its public
+key (`signing.pub`), and a `config.yaml` holding the signer label and a registry
+of trusted public keys.
+
 ```bash
-# Signer (holds the private key):
-hftools sign --output ./owner_model --gen-key key.pem   # prints the public key
-# Recipient (pins the public key out-of-band):
-hftools verify-sig --output ./owner_model --pubkey <hex-or-key-file>
+# Signer — the first `sign` creates ~/.hftools automatically:
+hftools sign --output ./owner_model --signer you@example.com
+hftools key show                       # print your public key + fingerprint
+hftools key export --out mykey.pem     # public key to distribute out-of-band
+
+# Recipient — trust the signer's key once, by name:
+hftools key trust alice <hex-or-key-file>
+hftools verify-sig --output ./owner_model          # auto-recognizes trusted keys
+hftools verify-sig --output ./owner_model --pubkey alice   # or pin explicitly
 ```
 
 `sign` signs the repository's content-addressed `.sha256` manifest with ed25519
-and stores the detached signature in `.metadata/signature.json` and `.sha256.sig`.
-Without `--pubkey`, `verify-sig` only proves the content is unchanged since
-signing; pin the key to prove provenance.
+and stores the detached signature in `.metadata/signature.json` and `.sha256.sig`
+(the public key travels inside the signature). Without an explicit `--key`, it
+uses the `~/.hftools` identity, creating it on first run.
+
+`verify-sig` always reports the signer's public key and its SHA-256 fingerprint.
+When the key matches one in your `config.yaml` trusted registry (or a `--pubkey`
+name/hex/PEM/file you supply), it proves **provenance**. With no match it still
+proves the content is unchanged since signing (**integrity**) and shows the
+fingerprint so you can decide whether to `hftools key trust` it.
+
+Manage the identity with `hftools key`: `init`, `show`, `export`, `trust`,
+`untrust`, `list`, `path`.
 
 ## Storage and maintenance
 

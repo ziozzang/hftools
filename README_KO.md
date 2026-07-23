@@ -35,7 +35,7 @@ Created by Jioh L. Jung <ziozzang@gmail.com> — [GitHub](https://github.com/zio
 - 기존 `huggingface-cli login` 토큰 자동 사용
 - 단일 파일 받기 `get`(파일 또는 stdout), 모든 다운로드의 `--dry-run`
 - pickle/torch 체크포인트의 위험 import 스캔(`scan`)
-- 콘텐츠 매니페스트에 대한 ed25519 출처 서명(`sign` / `verify-sig`)
+- 콘텐츠 매니페스트에 대한 ed25519 출처 서명(`sign` / `verify-sig`), `~/.hftools` 서명 신원과 신뢰 키 목록(`key`) 포함
 - 저장 도구: `du`, `gc`, 리포 간 하드링크 `dedup`, HF 캐시 `cache-gc`
 - 손상 복구 `repair`, 상류 변경 추적 `watch`, 환경 진단 `doctor`
 - 오프라인/air-gapped 사용을 위한 Hugging Face 캐시 구조 상호 변환
@@ -495,17 +495,35 @@ hftools scan pytorch_model.bin        # 파일 하나 스캔
 해시는 다운로드가 온전함을 증명하고, 서명은 누가 만들었는지를 증명합니다 —
 air gap을 건너 전달할 때 유용합니다.
 
+hftools는 사용자별 서명 신원을 `~/.hftools`에 보관합니다(`HFTOOLS_HOME`으로 경로
+변경 가능): ed25519 개인키(`signing.key`, 권한 0600), 공개키(`signing.pub`), 그리고
+서명자 라벨과 신뢰하는 공개키 목록을 담은 `config.yaml`입니다.
+
 ```bash
-# 서명자(개인키 보유):
-hftools sign --output ./owner_model --gen-key key.pem   # 공개키 출력
-# 수신자(공개키를 별도 경로로 고정):
-hftools verify-sig --output ./owner_model --pubkey <hex-또는-키파일>
+# 서명자 — 첫 `sign` 실행 시 ~/.hftools가 자동 생성됩니다:
+hftools sign --output ./owner_model --signer you@example.com
+hftools key show                       # 내 공개키 + 지문(fingerprint) 출력
+hftools key export --out mykey.pem     # 별도 경로로 배포할 공개키
+
+# 수신자 — 서명자의 키를 이름으로 한 번만 신뢰 등록:
+hftools key trust alice <hex-또는-키파일>
+hftools verify-sig --output ./owner_model          # 신뢰 키를 자동 인식
+hftools verify-sig --output ./owner_model --pubkey alice   # 또는 명시적으로 고정
 ```
 
 `sign`은 저장소의 콘텐츠 주소 매니페스트 `.sha256`을 ed25519로 서명하고, 분리
-서명을 `.metadata/signature.json`과 `.sha256.sig`에 저장합니다. `--pubkey` 없이
-`verify-sig`는 서명 이후 내용이 바뀌지 않았음만 증명합니다. 출처를 증명하려면
-키를 고정하세요.
+서명을 `.metadata/signature.json`과 `.sha256.sig`에 저장합니다(공개키는 서명 안에
+함께 담겨 이동합니다). `--key`를 주지 않으면 `~/.hftools` 신원을 사용하며 첫 실행 시
+자동 생성합니다.
+
+`verify-sig`는 항상 서명자의 공개키와 SHA-256 지문을 보여줍니다. 그 키가
+`config.yaml`의 신뢰 목록에 있거나(또는 `--pubkey`로 이름·hex·PEM·파일을 지정하면)
+**출처(provenance)**까지 증명합니다. 일치가 없으면 서명 이후 내용이 바뀌지 않았다는
+**무결성(integrity)**만 증명하며, 지문을 보여줘 `hftools key trust`로 신뢰할지
+판단할 수 있게 합니다.
+
+신원은 `hftools key`로 관리합니다: `init`, `show`, `export`, `trust`, `untrust`,
+`list`, `path`.
 
 ## 저장·유지보수
 
