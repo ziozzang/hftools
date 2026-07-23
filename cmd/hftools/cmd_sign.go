@@ -199,48 +199,65 @@ func verifySigCommand(args []string) error {
 	if err != nil {
 		return err
 	}
-	payload, err := os.ReadFile(filepath.Join(root, ".sha256"))
-	if err != nil {
-		return fmt.Errorf("no .sha256 manifest in %s: %w", root, err)
-	}
-	rec, err := loadSignature(root, stateDir)
-	if err != nil {
-		return err
-	}
-	recPub, err := sign.ParsePublicKey(rec.PublicKey)
-	if err != nil {
-		return fmt.Errorf("signature public key: %w", err)
-	}
 	cfg, _, err := identity.LoadConfig()
 	if err != nil {
 		return err
 	}
-	// Determine the pinned key: an explicit --pubkey (name, file, hex, or PEM),
-	// or an automatic match against a key the operator already trusts.
+	res, err := verifyRepoSignature(root, stateDir, cfg, *pubkey)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("signature OK\nsigned by: %s\nfingerprint: %s\n", res.Record.PublicKey, sign.Fingerprint(res.PublicKey))
+	if res.TrustLabel != "" {
+		fmt.Printf("trusted key: %s\n", res.TrustLabel)
+	}
+	if res.Record.Signer != "" {
+		fmt.Printf("signer: %s\n", res.Record.Signer)
+	}
+	fmt.Printf("signed at: %s\n", res.Record.SignedAt.Format(time.RFC3339))
+	if !res.Pinned {
+		fmt.Fprintln(os.Stderr, "note: key not pinned or trusted — this proves the content is unchanged since signing, not who signed it")
+		fmt.Fprintf(os.Stderr, "to trust this signer for future verifications: hftools key trust <name> %s\n", res.Record.PublicKey)
+	}
+	return nil
+}
+
+// sigResult carries the outcome of verifying a repository's stored signature.
+type sigResult struct {
+	Record     sign.Record
+	PublicKey  ed25519.PublicKey
+	TrustLabel string // trusted name when the signing key is recognized
+	Pinned     bool   // true when provenance (not just integrity) was proven
+}
+
+// verifyRepoSignature verifies the signature stored for the repository at root
+// against its .sha256 manifest. pubkeySpec (optional) pins a key by trusted name,
+// hex, PEM, or file; otherwise a key already in trusted_keys is recognized
+// automatically. It is shared by `verify-sig` and `verify`/`verify-batch --verify-sig`.
+func verifyRepoSignature(root, stateDir string, cfg *identity.Config, pubkeySpec string) (sigResult, error) {
+	payload, err := os.ReadFile(filepath.Join(root, ".sha256"))
+	if err != nil {
+		return sigResult{}, fmt.Errorf("no .sha256 manifest in %s: %w", root, err)
+	}
+	rec, err := loadSignature(root, stateDir)
+	if err != nil {
+		return sigResult{}, err
+	}
+	recPub, err := sign.ParsePublicKey(rec.PublicKey)
+	if err != nil {
+		return sigResult{}, fmt.Errorf("signature public key: %w", err)
+	}
 	var pinned ed25519.PublicKey
 	var trustLabel string
-	if *pubkey != "" {
-		pinned, trustLabel, err = cfg.ResolvePinned(*pubkey)
-		if err != nil {
-			return err
+	if pubkeySpec != "" {
+		if pinned, trustLabel, err = cfg.ResolvePinned(pubkeySpec); err != nil {
+			return sigResult{}, err
 		}
 	} else if name := cfg.LookupTrustedName(recPub); name != "" {
 		pinned, trustLabel = recPub, name
 	}
 	if err := rec.Verify(payload, pinned); err != nil {
-		return err
+		return sigResult{}, err
 	}
-	fmt.Printf("signature OK\nsigned by: %s\nfingerprint: %s\n", rec.PublicKey, sign.Fingerprint(recPub))
-	if trustLabel != "" {
-		fmt.Printf("trusted key: %s\n", trustLabel)
-	}
-	if rec.Signer != "" {
-		fmt.Printf("signer: %s\n", rec.Signer)
-	}
-	fmt.Printf("signed at: %s\n", rec.SignedAt.Format(time.RFC3339))
-	if pinned == nil {
-		fmt.Fprintln(os.Stderr, "note: key not pinned or trusted — this proves the content is unchanged since signing, not who signed it")
-		fmt.Fprintf(os.Stderr, "to trust this signer for future verifications: hftools key trust <name> %s\n", rec.PublicKey)
-	}
-	return nil
+	return sigResult{Record: rec, PublicKey: recPub, TrustLabel: trustLabel, Pinned: pinned != nil}, nil
 }

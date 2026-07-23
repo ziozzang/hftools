@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -25,7 +27,7 @@ func isPickleCandidate(name string) bool {
 
 // scanCommand statically inspects PyTorch/pickle checkpoints for the import
 // references that enable code execution on load.
-func scanCommand(args []string) error {
+func scanCommand(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("scan", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	jsonOut := fs.Bool("json", false, "emit JSON")
@@ -34,6 +36,8 @@ func scanCommand(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+	ctx, stop := watchInterrupt(ctx)
+	defer stop()
 	paths := fs.Args()
 	if len(paths) == 0 {
 		paths = []string{"."}
@@ -72,22 +76,12 @@ func scanCommand(args []string) error {
 	}
 	sort.Strings(targets)
 
-	var reports []pickle.Report
-	dangerous := 0
-	warnings := 0
-	for _, t := range targets {
-		rep, err := pickle.ScanFile(t)
-		if err != nil {
-			return fmt.Errorf("scan %s: %w", t, err)
+	reports, dangerous, warnings, err := scanTargets(ctx, targets)
+	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return errInterrupted
 		}
-		reports = append(reports, rep)
-		for _, f := range rep.Findings {
-			if f.Severity == pickle.SeverityCritical {
-				dangerous++
-			} else {
-				warnings++
-			}
-		}
+		return err
 	}
 
 	if *jsonOut {
@@ -104,6 +98,60 @@ func scanCommand(args []string) error {
 		return fmt.Errorf("%d dangerous import(s) found; do not load these files", dangerous)
 	}
 	return nil
+}
+
+// scanTargets statically scans each file, returning the reports and the running
+// count of critical and warning findings. It stops early with the context error
+// when the user interrupts (Ctrl+C / ESC).
+func scanTargets(ctx context.Context, targets []string) (reports []pickle.Report, dangerous, warnings int, err error) {
+	for _, t := range targets {
+		if err := ctx.Err(); err != nil {
+			return reports, dangerous, warnings, err
+		}
+		rep, err := pickle.ScanFile(t)
+		if err != nil {
+			return nil, 0, 0, fmt.Errorf("scan %s: %w", t, err)
+		}
+		reports = append(reports, rep)
+		for _, f := range rep.Findings {
+			if f.Severity == pickle.SeverityCritical {
+				dangerous++
+			} else {
+				warnings++
+			}
+		}
+	}
+	return reports, dangerous, warnings, nil
+}
+
+// scanRepositoryDir walks a repository directory for pickle/torch checkpoints and
+// scans each for imports that enable code execution on load. It is the hook
+// behind `verify`/`verify-batch --scan`.
+func scanRepositoryDir(ctx context.Context, root string) (reports []pickle.Report, dangerous, warnings int, err error) {
+	var targets []string
+	walkErr := filepath.WalkDir(root, func(path string, d os.DirEntry, werr error) error {
+		if werr != nil {
+			return werr
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if d.Name() == ".metadata" || d.Name() == "tmp" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if isPickleCandidate(d.Name()) {
+			targets = append(targets, path)
+		}
+		return nil
+	})
+	if walkErr != nil {
+		return nil, 0, 0, walkErr
+	}
+	sort.Strings(targets)
+	return scanTargets(ctx, targets)
 }
 
 func printScanReport(rep pickle.Report, quiet bool) {

@@ -12,7 +12,7 @@ import (
 	"syscall"
 )
 
-const version = "0.13.0"
+const version = "0.14.0"
 
 type settings struct {
 	Endpoint              string   `json:"endpoint"`
@@ -95,9 +95,9 @@ func run(ctx context.Context, args []string) error {
 	case "batch":
 		return batchCommand(ctx, args[1:])
 	case "verify":
-		return verifyCommand(args[1:])
+		return verifyCommand(ctx, args[1:])
 	case "verify-batch":
-		return verifyBatchCommand(args[1:])
+		return verifyBatchCommand(ctx, args[1:])
 	case "status":
 		return statusCommand(args[1:])
 	case "info", "show":
@@ -121,7 +121,7 @@ func run(ctx context.Context, args []string) error {
 	case "peek":
 		return peekCommand(ctx, args[1:])
 	case "scan":
-		return scanCommand(args[1:])
+		return scanCommand(ctx, args[1:])
 	case "sign":
 		return signCommand(args[1:])
 	case "verify-sig":

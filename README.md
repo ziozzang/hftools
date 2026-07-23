@@ -341,6 +341,20 @@ hftools status --output ./FluidInference_silero-vad-coreml
 `verify-batch` continues after failures by default; add `--fail-fast` to stop
 at the first failure.
 
+`verify` and `verify-batch` can fold the security scan and signature check into
+the same pass, so one command proves a repository is intact, safe to load, and
+from a trusted signer:
+
+```bash
+hftools verify-batch --root ./models --scan --verify-sig
+```
+
+`--scan` flags pickle/torch files with unsafe imports (a critical finding fails
+the repository); `--verify-sig` verifies each repository's stored signature
+(add `--pubkey <name|hex|PEM|file>` to pin, or rely on your trusted-key
+registry). Long scans and verifies are interruptible with **Ctrl+C** (or **ESC**
+/ **q** on a terminal).
+
 Run the same download or batch command later to check for an update. The
 requested revision is resolved again, and files are compared by Git blob or
 Git LFS object hash. Only changed files are downloaded. A literal commit SHA

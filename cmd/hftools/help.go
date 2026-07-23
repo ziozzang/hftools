@@ -38,9 +38,9 @@ func helpCommand(ctx context.Context, args []string) error {
 	case "batch":
 		err = batchCommand(ctx, []string{"-h"})
 	case "verify":
-		err = verifyCommand([]string{"-h"})
+		err = verifyCommand(ctx, []string{"-h"})
 	case "verify-batch":
-		err = verifyBatchCommand([]string{"-h"})
+		err = verifyBatchCommand(ctx, []string{"-h"})
 	case "status":
 		err = statusCommand([]string{"-h"})
 	case "info", "show":
@@ -56,7 +56,7 @@ func helpCommand(ctx context.Context, args []string) error {
 	case "peek":
 		err = peekCommand(ctx, []string{"-h"})
 	case "scan":
-		err = scanCommand([]string{"-h"})
+		err = scanCommand(ctx, []string{"-h"})
 	case "sign":
 		err = signCommand([]string{"-h"})
 	case "verify-sig":

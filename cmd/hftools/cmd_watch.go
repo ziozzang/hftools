@@ -105,7 +105,7 @@ func repairCommand(ctx context.Context, args []string) error {
 	}
 	// Deep-verify to flag silent corruption (bytes changed but size/mtime intact).
 	// A returned error just means files failed; the sync step below repairs them.
-	if verr := verifyDirectory(root, !*quick, int(buffer), false); verr != nil {
+	if verr := verifyDirectory(ctx, root, !*quick, int(buffer), false); verr != nil {
 		fmt.Fprintf(os.Stderr, "verification found problems: %v\n", verr)
 	}
 	origRevision := m.Revision
@@ -126,7 +126,7 @@ func repairCommand(ctx context.Context, args []string) error {
 			return serr
 		}
 	}
-	if err := verifyDirectory(root, false, int(buffer), homeAutoSign()); err != nil {
+	if err := verifyDirectory(ctx, root, false, int(buffer), homeAutoSign()); err != nil {
 		return err
 	}
 	if errors.Is(ctx.Err(), context.Canceled) {

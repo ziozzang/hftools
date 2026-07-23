@@ -333,6 +333,19 @@ hftools status --output ./FluidInference_silero-vad-coreml
 `verify-batch`는 기본적으로 실패 후에도 다음 디렉터리를 검사합니다. 첫 실패에
 중단하려면 `--fail-fast`를 추가합니다.
 
+`verify`와 `verify-batch`는 보안 스캔과 서명 검증을 같은 패스에 묶을 수 있어,
+한 번의 명령으로 저장소가 **온전하고, 로드해도 안전하며, 신뢰하는 서명자**의
+것임을 증명합니다:
+
+```bash
+hftools verify-batch --root ./models --scan --verify-sig
+```
+
+`--scan`은 pickle/torch 파일의 위험 import를 검사하고(critical 발견 시 해당
+저장소 실패 처리), `--verify-sig`는 각 저장소의 저장된 서명을 검증합니다
+(`--pubkey <이름|hex|PEM|파일>`로 고정하거나 신뢰 키 목록에 의존). 긴 스캔·검증은
+**Ctrl+C**(터미널에서는 **ESC** / **q**)로 중단할 수 있습니다.
+
 나중에 같은 다운로드 명령이나 배치 큐를 다시 실행하면 요청 리비전을 새로
 확정합니다. Git blob 또는 Git LFS 객체 해시를 비교하여 변경된 파일만 다시
 받습니다. 리비전에 커밋 SHA를 직접 지정하면 그 커밋에 고정됩니다.
