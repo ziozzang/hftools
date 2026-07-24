@@ -27,6 +27,7 @@ func verifyCommand(ctx context.Context, args []string) error {
 	scanFlag := fs.Bool("scan", false, "also scan pickle/torch files for unsafe imports")
 	verifySig := fs.Bool("verify-sig", false, "also verify the repository's stored signature")
 	pubkey := fs.String("pubkey", "", "pinned public key for --verify-sig: a trusted name, hex, PEM, or file path")
+	requireIdentity := fs.Bool("require-signed-identity", false, "with --verify-sig, fail if the signer label and time are not covered by the signature")
 	buffer := int64(1 << 20)
 	fs.Var(byteSizeValue{&buffer}, "buffer-size", "hashing buffer size")
 	if err := fs.Parse(args); err != nil {
@@ -48,7 +49,7 @@ func verifyCommand(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	errs := extraRepoChecks(ctx, root, *scanFlag, *verifySig, cfg, *pubkey)
+	errs := extraRepoChecks(ctx, root, *scanFlag, *verifySig, cfg, *pubkey, *requireIdentity)
 	if ctx.Err() != nil {
 		return errInterrupted
 	}
@@ -67,6 +68,7 @@ func verifyBatchCommand(ctx context.Context, args []string) error {
 	scanFlag := fs.Bool("scan", false, "also scan each repository's pickle/torch files for unsafe imports")
 	verifySig := fs.Bool("verify-sig", false, "also verify each repository's stored signature")
 	pubkey := fs.String("pubkey", "", "pinned public key for --verify-sig: a trusted name, hex, PEM, or file path")
+	requireIdentity := fs.Bool("require-signed-identity", false, "with --verify-sig, fail if the signer label and time are not covered by the signature")
 	buffer := int64(1 << 20)
 	fs.Var(byteSizeValue{&buffer}, "buffer-size", "hashing buffer size")
 	if err := fs.Parse(args); err != nil {
@@ -123,7 +125,7 @@ func verifyBatchCommand(ctx context.Context, args []string) error {
 			}
 			repoErrs = append(repoErrs, verr.Error())
 		}
-		repoErrs = append(repoErrs, extraRepoChecks(ctx, repositoryDir, *scanFlag, *verifySig, cfg, *pubkey)...)
+		repoErrs = append(repoErrs, extraRepoChecks(ctx, repositoryDir, *scanFlag, *verifySig, cfg, *pubkey, *requireIdentity)...)
 		if ctx.Err() != nil {
 			interrupted = true
 			break
@@ -148,7 +150,7 @@ func verifyBatchCommand(ctx context.Context, args []string) error {
 // extraRepoChecks runs the optional pickle security scan and signature
 // verification for a single repository (behind --scan / --verify-sig), printing a
 // short per-repo summary and returning any failure messages (empty on success).
-func extraRepoChecks(ctx context.Context, root string, doScan, doVerifySig bool, cfg *identity.Config, pubkeySpec string) []string {
+func extraRepoChecks(ctx context.Context, root string, doScan, doVerifySig bool, cfg *identity.Config, pubkeySpec string, requireIdentity bool) []string {
 	var errs []string
 	if doScan {
 		reports, dangerous, warnings, err := scanRepositoryDir(ctx, root)
@@ -170,6 +172,8 @@ func extraRepoChecks(ctx context.Context, root string, doScan, doVerifySig bool,
 		if stateDir, err := stateDirectory(root); err != nil {
 			errs = append(errs, "sig: "+err.Error())
 		} else if res, err := verifyRepoSignature(root, stateDir, cfg, pubkeySpec); err != nil {
+			errs = append(errs, "sig: "+err.Error())
+		} else if err := checkSignedIdentity(res.Record, cfg, requireIdentity); err != nil {
 			errs = append(errs, "sig: "+err.Error())
 		} else {
 			line := "  sig: OK " + sign.ShortFingerprint(res.PublicKey)

@@ -127,3 +127,36 @@ func TestParseYAMLIgnoresUnknownAndComments(t *testing.T) {
 		t.Fatalf("alice = %q", cfg.TrustedKeys["alice"])
 	}
 }
+
+// require_signed_identity must survive a write/read cycle, since enforcing
+// attribution machine-wide depends on it persisting in config.yaml.
+func TestRequireSignedIdentityRoundTrip(t *testing.T) {
+	cfg := &Config{Signer: "alice@corp.example", RequireSignedIdentity: true, TrustedKeys: map[string]string{}}
+	parsed, err := parseYAML(marshalYAML(cfg))
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if !parsed.RequireSignedIdentity {
+		t.Fatalf("require_signed_identity did not survive the round trip")
+	}
+	off := &Config{Signer: "a", TrustedKeys: map[string]string{}}
+	parsedOff, err := parseYAML(marshalYAML(off))
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if parsedOff.RequireSignedIdentity {
+		t.Fatalf("require_signed_identity must default to false")
+	}
+}
+
+// A config written by an older binary has no such key; it must read as false
+// rather than failing to parse.
+func TestRequireSignedIdentityAbsentIsFalse(t *testing.T) {
+	cfg, err := parseYAML([]byte("signer: alice\nauto_sign: true\n"))
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if cfg.RequireSignedIdentity {
+		t.Fatalf("absent key must read as false")
+	}
+}

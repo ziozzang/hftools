@@ -194,6 +194,7 @@ func verifySigCommand(args []string) error {
 	fs.SetOutput(os.Stderr)
 	output := fs.String("output", ".", "downloaded repository directory")
 	pubkey := fs.String("pubkey", "", "pinned public key to prove provenance: a trusted name, hex, PEM, or file path")
+	requireIdentity := fs.Bool("require-signed-identity", false, "fail if the signer label and time are not covered by the signature (pre-v2 records)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -213,6 +214,9 @@ func verifySigCommand(args []string) error {
 	if err != nil {
 		return err
 	}
+	if err := checkSignedIdentity(res.Record, cfg, *requireIdentity); err != nil {
+		return err
+	}
 	fmt.Printf("signature OK\n%s\n", signerLine(res.Record))
 	fmt.Printf("public key: %s\nfingerprint: %s\n", res.Record.PublicKey, sign.Fingerprint(res.PublicKey))
 	if res.TrustLabel != "" {
@@ -226,18 +230,40 @@ func verifySigCommand(args []string) error {
 }
 
 // signerLine renders who signed a repository and when, so every verification
-// leaves an auditable trace of who is answerable for the content. A v1 signature
-// does not cover these fields, so it is labeled rather than shown as proof.
+// leaves an auditable trace of who is answerable for the content.
+//
+// When the signature does not cover these fields (schema v1) the warning comes
+// first and the label is quoted, because such a label proves nothing: anyone can
+// rewrite a v2 record as v1 with a forged signer and it still verifies. Use
+// --require-signed-identity to reject those records outright.
 func signerLine(rec sign.Record) string {
 	who := rec.Signer
 	if who == "" {
 		who = "(no signer label recorded)"
 	}
-	s := fmt.Sprintf("signed by %s at %s", who, rec.SignedAt.UTC().Format(time.RFC3339))
+	when := rec.SignedAt.UTC().Format(time.RFC3339)
 	if !rec.MetadataSigned() {
-		s += " — legacy v1 signature: signer and time are not signature-covered"
+		return fmt.Sprintf("UNVERIFIED signer %q, time %s — not covered by the signature (pre-v2 record); treat as unproven", who, when)
 	}
-	return s
+	return fmt.Sprintf("signed by %s at %s", who, when)
+}
+
+// requireSignedIdentity reports whether a record's identity must be rejected,
+// honoring the --require-signed-identity flag and config.yaml.
+func identityEnforced(cfg *identity.Config, flagSet bool) bool {
+	if flagSet {
+		return true
+	}
+	return cfg != nil && cfg.RequireSignedIdentity
+}
+
+// checkSignedIdentity fails a verification whose signer/time are unauthenticated
+// when the operator has asked for attribution to be enforced.
+func checkSignedIdentity(rec sign.Record, cfg *identity.Config, flagSet bool) error {
+	if !identityEnforced(cfg, flagSet) || rec.MetadataSigned() {
+		return nil
+	}
+	return fmt.Errorf("signer identity is not covered by the signature (pre-v2 record); re-sign with this version or drop --require-signed-identity")
 }
 
 // sigResult carries the outcome of verifying a repository's stored signature.

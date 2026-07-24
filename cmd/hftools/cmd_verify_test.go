@@ -33,7 +33,7 @@ func TestExtraRepoChecksScanFlagsMalicious(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	errs := extraRepoChecks(context.Background(), repo, true, false, cfg, "")
+	errs := extraRepoChecks(context.Background(), repo, true, false, cfg, "", false)
 	if len(errs) == 0 || !strings.Contains(strings.Join(errs, " "), "dangerous") {
 		t.Fatalf("expected a dangerous-import failure, got %v", errs)
 	}
@@ -43,7 +43,7 @@ func TestExtraRepoChecksScanFlagsMalicious(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(clean, "readme.txt"), []byte("hello"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if errs := extraRepoChecks(context.Background(), clean, true, false, cfg, ""); len(errs) != 0 {
+	if errs := extraRepoChecks(context.Background(), clean, true, false, cfg, "", false); len(errs) != 0 {
 		t.Fatalf("clean dir should pass scan, got %v", errs)
 	}
 }
@@ -65,7 +65,7 @@ func TestExtraRepoChecksVerifiesSignature(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if errs := extraRepoChecks(context.Background(), repo, false, true, cfg, ""); len(errs) != 0 {
+	if errs := extraRepoChecks(context.Background(), repo, false, true, cfg, "", false); len(errs) != 0 {
 		t.Fatalf("signature should verify, got %v", errs)
 	}
 }

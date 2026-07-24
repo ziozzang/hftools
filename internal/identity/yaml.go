@@ -42,6 +42,8 @@ func parseYAML(data []byte) (*Config, error) {
 			cfg.KeyPath = value
 		case "auto_sign":
 			cfg.AutoSign = parseBool(value)
+		case "require_signed_identity":
+			cfg.RequireSignedIdentity = parseBool(value)
 		case "trusted_keys":
 			if value != "" && value != "{}" {
 				return nil, fmt.Errorf("line %d: trusted_keys must be a nested map", i+1)
@@ -113,6 +115,13 @@ func marshalYAML(c *Config) []byte {
 		b.WriteString("auto_sign: true\n")
 	} else {
 		b.WriteString("auto_sign: false\n")
+	}
+	b.WriteString("# require_signed_identity: reject signatures whose signer/time are not\n")
+	b.WriteString("# signature-covered (pre-v2 records). Enable where attribution matters.\n")
+	if c.RequireSignedIdentity {
+		b.WriteString("require_signed_identity: true\n")
+	} else {
+		b.WriteString("require_signed_identity: false\n")
 	}
 	b.WriteString("\ntrusted_keys:\n")
 	names := make([]string, 0, len(c.TrustedKeys))

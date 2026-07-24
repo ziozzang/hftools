@@ -27,10 +27,16 @@ const (
 // Config is the parsed ~/.hftools/config.yaml. Unknown keys are ignored so newer
 // fields degrade gracefully on older binaries.
 type Config struct {
-	Signer      string            // label recorded in signatures (e.g. an email)
-	KeyPath     string            // private key path; ~ is expanded, blank means the default
-	AutoSign    bool              // sign every download/verify with the home identity by default
-	TrustedKeys map[string]string // name -> hex-encoded ed25519 public key
+	Signer   string // label recorded in signatures (e.g. an email)
+	KeyPath  string // private key path; ~ is expanded, blank means the default
+	AutoSign bool   // sign every download/verify with the home identity by default
+	// RequireSignedIdentity rejects signatures whose signer label and time are
+	// not covered by the signature (schema v1). Without it such a record still
+	// verifies, and its label is only displayed as unverified — which an
+	// attacker can exploit by rewriting a v2 record as v1 with a forged label.
+	// Turn it on wherever the signer identity is relied on for attribution.
+	RequireSignedIdentity bool
+	TrustedKeys           map[string]string // name -> hex-encoded ed25519 public key
 }
 
 // Dir returns the hftools home directory. HFTOOLS_HOME overrides it (used by

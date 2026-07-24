@@ -362,6 +362,21 @@ hftools verify-batch --root ./models --scan --verify-sig
 않고 서명 검증 자체가 실패합니다. 라벨은
 `hftools key init --signer you@example.com`으로 한 번만 설정하면 됩니다.
 
+**서명자 라벨을 책임 추적에 쓴다면 강제 옵션을 켜십시오.** 스키마 v2 이전의
+서명은 라벨을 서명으로 보호하지 않으며, 공격자가 v2 레코드를 v1으로 되돌려
+서명자를 위조할 수 있습니다. 그런 레코드도 검증 자체는 통과하며
+`UNVERIFIED signer "..." — not covered by the signature`로 표시됩니다. 경고를
+사람이 알아채길 기대하는 대신 아예 거부하려면:
+
+```bash
+hftools verify --output ./repo --verify-sig --require-signed-identity
+hftools verify-batch --root ./models --verify-sig --require-signed-identity
+```
+
+`~/.hftools/config.yaml`에 `require_signed_identity: true`를 넣으면 플래그 없이도
+항상 강제됩니다. 가장 강력한 통제는 여전히 키 고정(`--pubkey`)이나 신뢰 키 목록
+등록입니다 — 라벨과 무관하게 **어떤 키가 서명했는지**를 증명하기 때문입니다.
+
 나중에 같은 다운로드 명령이나 배치 큐를 다시 실행하면 요청 리비전을 새로
 확정합니다. Git blob 또는 Git LFS 객체 해시를 비교하여 변경된 파일만 다시
 받고, 리포가 어떻게 바뀌었는지도 함께 보고합니다:

@@ -371,6 +371,22 @@ one in `signature.json` invalidates the signature rather than silently
 misattributing a download. Set your label once with
 `hftools key init --signer you@example.com`.
 
+**If you rely on the signer label for attribution, enforce it.** Signatures
+written before schema v2 do not cover the label, and an attacker can rewrite a v2
+record as a v1 one with a forged signer — it still verifies, and is reported as
+`UNVERIFIED signer "..." — not covered by the signature`. To reject such records
+outright rather than trusting the reader to notice the warning:
+
+```bash
+hftools verify --output ./repo --verify-sig --require-signed-identity
+hftools verify-batch --root ./models --verify-sig --require-signed-identity
+```
+
+Set `require_signed_identity: true` in `~/.hftools/config.yaml` to enforce it
+everywhere without passing the flag. Pinning the key (`--pubkey`) or trusting it
+in the registry remains the strongest control: it proves which key signed,
+independent of any label.
+
 Run the same download or batch command later to check for an update. The
 requested revision is resolved again, and files are compared by Git blob or
 Git LFS object hash — only changed files are downloaded, and the run reports
